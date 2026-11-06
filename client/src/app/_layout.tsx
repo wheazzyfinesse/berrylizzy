@@ -1,12 +1,28 @@
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 import { Stack } from "expo-router";
 import "@/global.css";
+// Import all RTK Query APIs so injectEndpoints registers
+import "@/redux/features/apis/productApi";
+import "@/redux/features/apis/orderApi";
+import "@/redux/features/apis/userApi";
+import "@/redux/features/apis/addressApi";
+import "@/redux/features/apis/wishlistApi";
+import "@/redux/features/apis/cartApi";
+import { persistor, store } from "@/redux/store";
+import AppInitializer from "@/Providers/AppInitializer";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
 	return (
-		<Stack
-			screenOptions={{
-				headerShown: false,
-			}}
-		/>
+		<GestureHandlerRootView style={{ flex: 1 }}>
+			<Provider store={store}>
+				<PersistGate loading={null} persistor={persistor}>
+					<AppInitializer>
+						<Stack screenOptions={{ headerShown: false }} />
+					</AppInitializer>
+				</PersistGate>
+			</Provider>
+		</GestureHandlerRootView>
 	);
 }

@@ -1,9 +1,12 @@
 import { BANNERS, dummyProducts } from "@/assets/assets";
 import CategoryItem from "@/components/CategoryItem";
+import Error from "@/components/Error";
 import Header from "@/components/Header";
+import Loading from "@/components/Loading";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORIES } from "@/constants";
 import { Product } from "@/constants/types";
+import { useGetProductsQuery } from "@/redux/features/apis/productApi";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -21,18 +24,18 @@ const { width } = Dimensions.get("window");
 const Home = () => {
 	const router = useRouter();
 	const [activeBannerIndex, setActiveBannerIndex] = useState(0);
-	const [products, setPrtoducts] = useState<Product[]>([]);
-	const [loading, setLoading] = useState(true);
-
 	const categories = [{ id: "all", name: "All", icon: "grid" }, ...CATEGORIES];
-	const fetchProducts = async () => {
-		setPrtoducts(dummyProducts);
-		setLoading(false);
-	};
+	const {
+		data: products = [],
+		isLoading,
+		isFetching,
+		error,
+		refetch,
+	} = useGetProductsQuery();
 
-	useEffect(() => {
-		fetchProducts();
-	}, []);
+	if (error && products.length === 0) {
+		return <Error onRetry={refetch} />;
+	}
 	return (
 		<SafeAreaView className="flex-1" edges={["top"]}>
 			<Header title="Berrylizzy Kidswear" showMenu showCart showLogo />
@@ -66,8 +69,6 @@ const Home = () => {
 									className="w-full h-full"
 									resizeMode="cover"
 								/>
-								<View className="absolute inset-0 bg-black/40" />
-
 								<View className="absolute bottom-4 left-4 z-10">
 									<Text className="text-white text-2xl font-bold">
 										{banner.title}
@@ -81,6 +82,7 @@ const Home = () => {
 										</Text>
 									</TouchableOpacity>
 								</View>
+								<View className="absolute inset-0 bg-black/40" />
 							</View>
 						))}
 					</ScrollView>
@@ -107,6 +109,7 @@ const Home = () => {
 					>
 						{categories.map((category: any) => (
 							<CategoryItem
+								key={category.id}
 								item={category}
 								isSelected={false}
 								onPress={() =>
@@ -130,10 +133,10 @@ const Home = () => {
 						</Text>
 						<TouchableOpacity onPress={() => router.push("/shop")}>
 							<Text className=" text-sm text-secondary">See All</Text>
-						</TouchableOpacity>{" "}
+						</TouchableOpacity>
 					</View>
-					{loading ? (
-						<ActivityIndicator size="large" />
+					{isLoading ? (
+						<Loading />
 					) : (
 						<View className="flex-row flex-wrap justify-between">
 							{products.slice(0, 4).map((product) => (
@@ -144,9 +147,9 @@ const Home = () => {
 				</View>
 
 				{/* Newsletter CTA */}
-				<View className="bg-gray-100 p-6 rounded-2xl mb-10 items-center">
+				<View className="bg-gray-100 p-6 rounded-2xl mb-20 items-center">
 					<Text className="text-2xl font-bold text-primary mb-2 text-center">
-						Join the Family
+						Join the Berrylizzy Family
 					</Text>
 					<Text className="text-secondary text-center mb-4">
 						Subscribe to our newsletter and get 10% off your first purchase.

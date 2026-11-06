@@ -1,54 +1,56 @@
 {
-	"expo": {
-		"name": "client",
-		"slug": "berrylizzy",
-		"version": "1.0.0",
-		"orientation": "portrait",
-		"icon": "./src/assets/images/icon.png",
-		"scheme": "client",
-		"userInterfaceStyle": "automatic",
-		"ios": {
-			"icon": "./src/assets/expo.icon"
-		},
-		"android": {
-			"adaptiveIcon": {
-				"backgroundColor": "#E6F4FE",
-				"foregroundImage": "./src/assets/images/android-icon-foreground.png",
-				"backgroundImage": "./src/assets/images/android-icon-background.png",
-				"monochromeImage": "./src/assets/images/android-icon-monochrome.png"
-			},
-			"predictiveBackGestureEnabled": false
-		},
-		"web": {
-			"output": "server",
-			"favicon": "./src/assets/images/favicon.png",
-			"bundler": "metro"
-		},
-		"plugins": [
-			"expo-router",
-			[
-				"expo-splash-screen",
-				{
-					"backgroundColor": "#208AEF",
-					"image": "./src/assets/images/splash-icon.png",
-					"imageWidth": 76
-				}
-			]
-		],
-		"experiments": {
-			"typedRoutes": true,
-			"reactCompiler": true
-		},
-		"extra": {
-			"router": {
-				"asyncRoutes": {
-					"web": true
-				}
-			},
-			"eas": {
-				"projectId": "910d1570-dc36-43bb-9a48-3ebc248b4a1d"
-			}
-		},
-		"owner": "wizzywizzys-team"
-	}
+  "expo": {
+    "name": "client",
+    "slug": "berrylizzy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/icon.png",
+    "scheme": "client",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./src/assets/expo.icon"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./src/assets/images/android-icon-foreground.png",
+        "backgroundImage": "./src/assets/images/android-icon-background.png",
+        "monochromeImage": "./src/assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "server",
+      "favicon": "./src/assets/images/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#208AEF",
+          "image": "./src/assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "910d1570-dc36-43bb-9a48-3ebc248b4a1d"
+      }
+    },
+    "owner": "wizzywizzys-team"
+  }
 }

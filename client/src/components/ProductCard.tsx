@@ -1,10 +1,18 @@
 import { COLORS } from "@/constants";
 import { ProductCardProps } from "@/constants/types";
+import {
+	isInWishlist,
+	toggleWishlist,
+} from "@/redux/features/slices/wishlistSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { Link } from "expo-router";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 const ProductCard = ({ product }: ProductCardProps) => {
-	const isLiked = false;
+	const dispatch = useAppDispatch();
+
+	const isLiked = useAppSelector(isInWishlist(product._id));
+	console.log(isLiked);
 	return (
 		<Link href={`/product/${product._id}`} asChild>
 			<TouchableOpacity className="w-[48%] mb-4 bg-white rounded-lg overflow-hidden">
@@ -15,9 +23,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
 						resizeMode="cover"
 					/>
 
-					{/* Favourite Icon */}
+					{/* Wishlist Icon */}
 					<TouchableOpacity
-						onPress={(e) => e.stopPropagation()}
+						onPress={(e) => {
+							e.stopPropagation();
+							dispatch(toggleWishlist(product));
+						}}
 						className="absolute top-2 right-2 z-10 p-2 bg-white rounded-full"
 					>
 						<Ionicons

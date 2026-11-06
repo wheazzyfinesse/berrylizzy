@@ -1,7 +1,6 @@
 import { COLORS } from "@/constants";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { Tabs } from "expo-router";
-import { View, Text } from "react-native";
 const Tablayout = () => {
 	return (
 		<Tabs
@@ -46,7 +45,7 @@ const Tablayout = () => {
 			/>
 
 			<Tabs.Screen
-				name="favourites"
+				name="wishlist"
 				options={{
 					tabBarIcon: ({ color, focused }) => (
 						<Ionicons
