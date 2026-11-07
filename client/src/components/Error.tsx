@@ -1,4 +1,5 @@
 import Ionicons from "@react-native-vector-icons/ionicons";
+import { Image } from "expo-image";
 import { View, Text, Pressable } from "react-native";
 
 type ErrorProps = {
@@ -14,8 +15,12 @@ const Error = ({
 }: ErrorProps) => {
 	return (
 		<View className="flex-1 items-center justify-center px-6 bg-white">
-			<View className="w-16 h-16 rounded-full bg-red-50 items-center justify-center mb-4">
-				<Ionicons name="cloud-offline-outline" size={32} color="#EF4444" />
+			<View className="w-16 h-16 rounded-full bg-red-200 items-center justify-center mb-4">
+				{/* <Ionicons name="cloud-offline-outline" size={32} color="#EF4444" /> */}
+				<Image
+					source={require("@/assets/images/nbg_logo.png")}
+					style={{ width: 40, height: 40 }}
+				/>
 			</View>
 
 			<Text className="text-xl font-bold text-gray-900 mb-2">{title}</Text>

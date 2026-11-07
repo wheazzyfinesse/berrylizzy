@@ -1,8 +1,10 @@
 import { COLORS } from "@/constants";
 import { HeaderProps } from "@/constants/types";
+import { clearCart, selectCartCount } from "@/redux/features/slices/cartSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
 
 const Header = ({
 	title,
@@ -13,8 +15,26 @@ const Header = ({
 	showLogo,
 }: HeaderProps) => {
 	const router = useRouter();
-	const { itemCount } = { itemCount: 6 };
-
+	const cartcount = useAppSelector(selectCartCount);
+	const dispatch = useAppDispatch();
+	const handleClearCart = () => {
+		Alert.alert(
+			"Clear Cart",
+			"Are you sure you want to remove all items from your cart?",
+			[
+				{
+					text: "Cancel",
+					style: "cancel",
+				},
+				{
+					text: "Clear Cart",
+					style: "destructive",
+					onPress: () => dispatch(clearCart()),
+				},
+			],
+			{ cancelable: true },
+		);
+	};
 	return (
 		<View className="flex-row items-center justify-between px-4 py-3 bg-white">
 			{/* Left side */}
@@ -58,12 +78,27 @@ const Header = ({
 					</TouchableOpacity>
 				)}
 				{showCart && (
-					<TouchableOpacity onPress={() => router.push("/(tabs)/cart")}>
+					<TouchableOpacity
+						onPress={() =>
+							title === "My Cart"
+								? handleClearCart()
+								: router.push("/(tabs)/cart")
+						}
+					>
 						<View className="relative">
-							<Ionicons name="bag-outline" size={28} color={COLORS.primary} />
+							<View className="items-center">
+								<Ionicons
+									name={title === "My Cart" ? "trash-outline" : "bag-outline"}
+									size={title === "My Cart" ? 24 : 28}
+									color={title === "My Cart" ? COLORS.accent : COLORS.primary}
+								/>
+								{title === "My Cart" && (
+									<Text className="text-accent text-xs  ">Clear Cart</Text>
+								)}
+							</View>
 							<View className="absolute -top-1 -right-1 bg-accent w-4 h-4 rounded-full items-center justify-center">
 								<Text className="text-white text-[10px] font-bold">
-									{itemCount}
+									{cartcount}
 								</Text>
 							</View>
 						</View>

@@ -1,4 +1,6 @@
-import { View, ActivityIndicator, Text } from "react-native";
+import { COLORS } from "@/constants";
+import { ActivityIndicator, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type LoadingProps = {
 	message?: string;
@@ -6,11 +8,11 @@ type LoadingProps = {
 
 const Loading = ({ message = "Loading..." }: LoadingProps) => {
 	return (
-		<View className="flex-1 items-center justify-center bg-white">
-			<ActivityIndicator size="large" color="#EC4899" />
+		<SafeAreaView className="flex-1 items-center justify-center bg-white">
+			<ActivityIndicator size="large" color={COLORS.primary} />
 
 			<Text className="text-sm text-gray-500 mt-3">{message}</Text>
-		</View>
+		</SafeAreaView>
 	);
 };
 

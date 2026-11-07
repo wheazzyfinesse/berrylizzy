@@ -10,7 +10,6 @@ import { useGetProductsQuery } from "@/redux/features/apis/productApi";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-	ActivityIndicator,
 	Dimensions,
 	Image,
 	ScrollView,
@@ -69,6 +68,7 @@ const Home = () => {
 									className="w-full h-full"
 									resizeMode="cover"
 								/>
+								<View className="absolute inset-0 bg-black/40" />
 								<View className="absolute bottom-4 left-4 z-10">
 									<Text className="text-white text-2xl font-bold">
 										{banner.title}
@@ -82,7 +82,6 @@ const Home = () => {
 										</Text>
 									</TouchableOpacity>
 								</View>
-								<View className="absolute inset-0 bg-black/40" />
 							</View>
 						))}
 					</ScrollView>

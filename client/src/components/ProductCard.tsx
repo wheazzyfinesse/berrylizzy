@@ -10,9 +10,8 @@ import { Link } from "expo-router";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 const ProductCard = ({ product }: ProductCardProps) => {
 	const dispatch = useAppDispatch();
-
 	const isLiked = useAppSelector(isInWishlist(product._id));
-	console.log(isLiked);
+
 	return (
 		<Link href={`/product/${product._id}`} asChild>
 			<TouchableOpacity className="w-[48%] mb-4 bg-white rounded-lg overflow-hidden">

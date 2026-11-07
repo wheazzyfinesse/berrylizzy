@@ -12,6 +12,7 @@ import "@/redux/features/apis/cartApi";
 import { persistor, store } from "@/redux/store";
 import AppInitializer from "@/Providers/AppInitializer";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import Toast from "react-native-toast-message";
 
 export default function RootLayout() {
 	return (
@@ -20,6 +21,7 @@ export default function RootLayout() {
 				<PersistGate loading={null} persistor={persistor}>
 					<AppInitializer>
 						<Stack screenOptions={{ headerShown: false }} />
+						<Toast />
 					</AppInitializer>
 				</PersistGate>
 			</Provider>
