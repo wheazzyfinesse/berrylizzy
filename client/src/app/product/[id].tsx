@@ -12,7 +12,7 @@ import {
 	isInWishlist,
 	toggleWishlist,
 } from "@/redux/features/slices/wishlistSlice";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";

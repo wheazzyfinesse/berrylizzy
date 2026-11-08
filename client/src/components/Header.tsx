@@ -1,7 +1,7 @@
 import { COLORS } from "@/constants";
 import { HeaderProps } from "@/constants/types";
 import { clearCart, selectCartCount } from "@/redux/features/slices/cartSlice";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
 import { View, Text, TouchableOpacity, Image, Alert } from "react-native";

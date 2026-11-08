@@ -1,6 +1,5 @@
-// import { baseApi } from '@/store/baseApi';
 import { User } from "@/constants/types";
-import { baseApi } from "../../api";
+import { baseApi } from "./api";
 
 export const usersApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({

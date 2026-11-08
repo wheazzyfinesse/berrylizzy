@@ -1,6 +1,5 @@
-// import { baseApi } from '@/store/baseApi';
 import { Product } from "@/redux/lib/types";
-import { baseApi } from "../../api";
+import { baseApi } from "./api";
 
 export type ProductInput = Omit<Product, "_id" | "ratings" | "createdAt">;
 

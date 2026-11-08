@@ -1,5 +1,5 @@
 import { setResolvedTheme } from "@/redux/features/slices/themeSlice";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch } from "@/redux/lib/hooks";
 import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 

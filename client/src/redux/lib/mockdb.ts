@@ -6,7 +6,8 @@ import {
 	dummyAddress,
 	dummyUser,
 } from "@/assets/assets";
-import { Address, Cart, Order, Product, User } from "./types";
+import { Address, Cart, Order, Product } from "./types";
+import { User } from "@/constants/types";
 // import { Cart, Order, Product, Address, User } from "@/constants/types";
 
 // Deep clone so we don't mutate the original file

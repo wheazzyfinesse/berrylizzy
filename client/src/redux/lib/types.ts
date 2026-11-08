@@ -70,6 +70,6 @@ export type User = {
 	name: string;
 	email: string;
 	clerkId: string;
-	image?: string;
+	imageUrl?: string;
 	role: "user" | "admin";
 };

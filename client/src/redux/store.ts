@@ -17,7 +17,7 @@ import filterReducer from "@/redux/features/slices/filterSlice";
 import uiReducer from "@/redux/features/slices/uiSlice";
 import authReducer from "@/redux/features/slices/authSlice";
 import checkoutReducer from "@/redux/features/slices/checkoutSlice";
-import { baseApi } from "./api";
+import { baseApi } from "./features/apis/api";
 
 const persistConfig = {
 	key: "root",

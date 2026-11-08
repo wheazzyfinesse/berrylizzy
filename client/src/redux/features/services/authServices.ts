@@ -1,5 +1,5 @@
 import * as SecureStore from "expo-secure-store";
-import { API_URL, USE_DUMMY } from "@/redux/api";
+import { API_URL, USE_DUMMY } from "../apis/api";
 
 const TOKEN_KEY = "access_token";
 

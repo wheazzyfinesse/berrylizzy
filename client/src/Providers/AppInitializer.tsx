@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Appearance, useColorScheme } from "react-native";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { logout, setUser } from "@/redux/features/slices/authSlice";
 import { setResolvedTheme } from "@/redux/features/slices/themeSlice";
 import { authService } from "@/redux/features/services/authServices";

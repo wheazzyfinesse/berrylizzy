@@ -9,7 +9,7 @@ import {
 	selectCartSubtotal,
 	selectCartTotal,
 } from "@/redux/features/slices/cartSlice";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
 import {

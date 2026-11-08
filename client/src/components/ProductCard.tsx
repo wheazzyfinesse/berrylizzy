@@ -4,7 +4,7 @@ import {
 	isInWishlist,
 	toggleWishlist,
 } from "@/redux/features/slices/wishlistSlice";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { Link } from "expo-router";
 import { View, Text, TouchableOpacity, Image } from "react-native";

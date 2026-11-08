@@ -1,6 +1,5 @@
-// import { baseApi } from '@/store/baseApi';
 import { Address } from "@/constants/types";
-import { baseApi } from "../../api";
+import { baseApi } from "./api";
 
 export const addressApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({

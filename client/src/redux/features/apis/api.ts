@@ -6,8 +6,8 @@ import {
 	FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { delay, mockDb } from "./lib/mockdb";
 import * as SecureStore from "expo-secure-store";
+import { delay, mockDb } from "@/redux/lib/mockdb";
 
 export const USE_DUMMY = true;
 export const API_URL = "https://your-api.com/api";

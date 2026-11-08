@@ -8,7 +8,7 @@ type LoadingProps = {
 
 const Loading = ({ message = "Loading..." }: LoadingProps) => {
 	return (
-		<SafeAreaView className="flex-1 items-center justify-center bg-white">
+		<SafeAreaView className="flex-1 items-center justify-center">
 			<ActivityIndicator size="large" color={COLORS.primary} />
 
 			<Text className="text-sm text-gray-500 mt-3">{message}</Text>
