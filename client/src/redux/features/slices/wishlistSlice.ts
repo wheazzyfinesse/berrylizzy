@@ -54,3 +54,5 @@ export const selectWishlistItems = (s: any) => s.wishlist.items as Product[];
 export const selectWishlistIds = (s: any) => s.wishlist.ids as string[];
 export const isInWishlist = (id: string) => (s: any) =>
 	s.wishlist.ids.includes(id);
+export const selectWishlistCount = (state: RootState) =>
+	state.wishlist.items.length;
