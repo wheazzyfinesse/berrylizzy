@@ -13,6 +13,7 @@
 		".expo/types/**/*.ts",
 		"expo-env.d.ts",
 		"nativewind-env.d.ts",
-		"src/redux/features/apis"
+		"src/redux/features/apis",
+		"src/constants/types/store.types.ts"
 	]
 }

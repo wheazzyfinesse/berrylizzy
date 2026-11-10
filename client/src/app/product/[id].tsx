@@ -4,7 +4,6 @@ import { COLORS } from "@/constants";
 import { useGetProductByIdQuery } from "@/redux/features/apis/productApi";
 import {
 	addToCart,
-	removeFromCart,
 	selectCartCount,
 	selectIsInCart,
 } from "@/redux/features/slices/cartSlice";

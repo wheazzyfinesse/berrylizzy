@@ -1,11 +1,10 @@
-import { BANNERS, dummyProducts } from "@/assets/assets";
 import CategoryItem from "@/components/CategoryItem";
 import Error from "@/components/Error";
 import Header from "@/components/Header";
 import Loading from "@/components/Loading";
 import ProductCard from "@/components/ProductCard";
 import { CATEGORIES } from "@/constants";
-import { Product } from "@/constants/types";
+import { BANNERS } from "@/constants/dummyData";
 import { useGetProductsQuery } from "@/redux/features/apis/productApi";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";

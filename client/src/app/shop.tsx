@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-	ActivityIndicator,
 	FlatList,
 	Text,
 	TextInput,
@@ -11,7 +10,7 @@ import {
 import { useGetProductsQuery } from "@/redux/features/apis/productApi";
 import Loading from "@/components/Loading";
 import Error from "@/components/Error";
-import { Product } from "@/redux/lib/types";
+import { Product } from "@/constants/types";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";

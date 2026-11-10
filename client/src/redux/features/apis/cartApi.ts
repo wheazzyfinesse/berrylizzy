@@ -1,5 +1,4 @@
-// import { Cart } from "@/constants/types";
-import { Cart } from "../../lib/types";
+import { Cart } from "@/constants/types";
 import { baseApi } from "./api";
 
 export const cartApi = baseApi.injectEndpoints({

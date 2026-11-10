@@ -1,19 +1,17 @@
-import { CartItem, Product } from "@/redux/lib/types";
+import type { CartState, Product, CartItem } from "@/constants/types";
+import { RootState, store } from "@/redux/store";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-// import { CartItem, Product } from "@/constants/types";
-
-export type CartState = {
-	items: CartItem[];
-	promoCode: string | null;
-	discount: number;
-	isCartOpen: boolean; // for bottom sheet / drawer
-};
 
 const initialState: CartState = {
 	items: [],
 	promoCode: null,
 	discount: 0,
 	isCartOpen: false,
+};
+
+type CartItemPayload = {
+	productId: string;
+	size: string;
 };
 
 const cartSlice = createSlice({
@@ -29,11 +27,16 @@ const cartSlice = createSlice({
 			}>,
 		) => {
 			const { product, size, quantity = 1 } = action.payload;
+
+			if (quantity <= 0) return;
+
 			const existing = state.items.find(
-				(i) => i.product._id === product._id && i.size === size,
+				(item) => item.product._id === product._id && item.size === size,
 			);
-			if (existing) existing.quantity += quantity;
-			else
+
+			if (existing) {
+				existing.quantity += quantity;
+			} else {
 				state.items.push({
 					_id: `${product._id}-${size}`,
 					product,
@@ -41,67 +44,72 @@ const cartSlice = createSlice({
 					price: product.price,
 					size,
 				});
+			}
 		},
+
 		updateQuantity: (
 			state,
-			action: PayloadAction<{
-				productId: string;
-				size: string;
-				quantity: number;
-			}>,
+			action: PayloadAction<CartItemPayload & { quantity: number }>,
 		) => {
+			const { productId, size, quantity } = action.payload;
+
 			const item = state.items.find(
-				(i) =>
-					i.product._id === action.payload.productId &&
-					i.size === action.payload.size,
+				(item) => item.product._id === productId && item.size === size,
 			);
+
 			if (!item) return;
-			if (action.payload.quantity <= 0)
-				state.items = state.items.filter((i) => i !== item);
-			else item.quantity = action.payload.quantity;
+
+			if (quantity <= 0) {
+				state.items = state.items.filter(
+					(item) => !(item.product._id === productId && item.size === size),
+				);
+			} else {
+				item.quantity = quantity;
+			}
 		},
-		increment: (
-			state,
-			action: PayloadAction<{ productId: string; size: string }>,
-		) => {
+
+		increment: (state, action: PayloadAction<CartItemPayload>) => {
+			const { productId, size } = action.payload;
+
 			const item = state.items.find(
-				(i) =>
-					i.product._id === action.payload.productId &&
-					i.size === action.payload.size,
+				(item) => item.product._id === productId && item.size === size,
 			);
+
 			if (item) item.quantity += 1;
 		},
-		decrement: (
-			state,
-			action: PayloadAction<{ productId: string; size: string }>,
-		) => {
+
+		decrement: (state, action: PayloadAction<CartItemPayload>) => {
+			const { productId, size } = action.payload;
+
 			const item = state.items.find(
-				(i) =>
-					i.product._id === action.payload.productId &&
-					i.size === action.payload.size,
+				(item) => item.product._id === productId && item.size === size,
 			);
+
 			if (!item) return;
-			if (item.quantity <= 1)
-				state.items = state.items.filter((i) => i !== item);
-			else item.quantity -= 1;
+
+			if (item.quantity <= 1) {
+				state.items = state.items.filter(
+					(item) => !(item.product._id === productId && item.size === size),
+				);
+			} else {
+				item.quantity -= 1;
+			}
 		},
-		removeFromCart: (
-			state,
-			action: PayloadAction<{ productId: string; size: string }>,
-		) => {
+
+		removeFromCart: (state, action: PayloadAction<CartItemPayload>) => {
+			const { productId, size } = action.payload;
+
 			state.items = state.items.filter(
-				(i) =>
-					!(
-						i.product._id === action.payload.productId &&
-						i.size === action.payload.size
-					),
+				(item) => !(item.product._id === productId && item.size === size),
 			);
 		},
+
 		clearCart: (state) => {
 			state.items = [];
 			state.promoCode = null;
 			state.discount = 0;
 		},
+
 		applyPromo: (
 			state,
 			action: PayloadAction<{ code: string; discount: number }>,
@@ -109,10 +117,12 @@ const cartSlice = createSlice({
 			state.promoCode = action.payload.code;
 			state.discount = action.payload.discount;
 		},
+
 		removePromo: (state) => {
 			state.promoCode = null;
 			state.discount = 0;
 		},
+
 		setCartOpen: (state, action: PayloadAction<boolean>) => {
 			state.isCartOpen = action.payload;
 		},
@@ -130,24 +140,30 @@ export const {
 	removePromo,
 	setCartOpen,
 } = cartSlice.actions;
+
 export default cartSlice.reducer;
 
 // Selectors
-export const selectCartItems = (s: any) => s.cart.items as CartItem[];
-export const selectCartCount = (s: any) =>
-	s.cart.items.reduce((sum: number, i: CartItem) => sum + i.quantity, 0);
-export const selectCartSubtotal = (s: any) =>
-	s.cart.items.reduce(
-		(sum: number, i: CartItem) => sum + i.price * i.quantity,
-		0,
-	);
-export const selectCartTotal = (s: any) => {
-	const subtotal = selectCartSubtotal(s);
-	const discount = s.cart.discount ?? 0;
+export const selectCartItems = (state: RootState): CartItem[] =>
+	state.cart.items;
+
+export const selectCartCount = (state: RootState): number =>
+	state.cart.items.reduce((sum, item) => sum + item.quantity, 0);
+
+export const selectCartSubtotal = (state: RootState): number =>
+	state.cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+export const selectCartTotal = (state: RootState): number => {
+	const subtotal = selectCartSubtotal(state);
+	const discount = state.cart.discount;
 	const shipping = subtotal > 0 ? 2 : 0;
-	return subtotal - discount + shipping;
+
+	return Math.max(0, subtotal - discount + shipping);
 };
-export const selectIsInCart = (productId: string, size: string) => (s: any) =>
-	s.cart.items.some(
-		(i: CartItem) => i.product._id === productId && i.size === size,
-	);
+
+export const selectIsInCart =
+	(productId: string, size: string) =>
+	(state: RootState): boolean =>
+		state.cart.items.some(
+			(item) => item.product._id === productId && item.size === size,
+		);

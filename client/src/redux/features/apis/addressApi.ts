@@ -1,4 +1,4 @@
-import { Address } from "@/constants/types";
+import type { Address } from "@/constants/types";
 import { baseApi } from "./api";
 
 export const addressApi = baseApi.injectEndpoints({

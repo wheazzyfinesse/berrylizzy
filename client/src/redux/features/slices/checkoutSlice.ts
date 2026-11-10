@@ -1,13 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Address } from "@/constants/types";
-
-type CheckoutState = {
-	step: 1 | 2 | 3; // 1=Address, 2=Payment, 3=Review
-	selectedAddressId: string | null;
-	paymentMethod: "cash" | "stripe";
-	notes: string;
-	isPlacingOrder: boolean;
-};
+import { CheckoutState, CheckoutStep, PaymentMethod } from "@/constants/types";
+import { RootState } from "@/redux/store";
 
 const initialState: CheckoutState = {
 	step: 1,
@@ -21,26 +14,26 @@ const checkoutSlice = createSlice({
 	name: "checkout",
 	initialState,
 	reducers: {
-		setStep: (state, a: PayloadAction<1 | 2 | 3>) => {
-			state.step = a.payload;
+		setStep: (state, action: PayloadAction<CheckoutStep>) => {
+			state.step = action.payload;
 		},
 		nextStep: (state) => {
-			if (state.step < 3) state.step = (state.step + 1) as 1 | 2 | 3;
+			if (state.step < 3) state.step = (state.step + 1) as CheckoutStep;
 		},
 		prevStep: (state) => {
-			if (state.step > 1) state.step = (state.step - 1) as 1 | 2 | 3;
+			if (state.step > 1) state.step = (state.step - 1) as CheckoutStep;
 		},
-		setSelectedAddress: (state, a: PayloadAction<string>) => {
-			state.selectedAddressId = a.payload;
+		setSelectedAddress: (state, action: PayloadAction<string>) => {
+			state.selectedAddressId = action.payload;
 		},
-		setPaymentMethod: (state, a: PayloadAction<"cash" | "stripe">) => {
-			state.paymentMethod = a.payload;
+		setPaymentMethod: (state, action: PayloadAction<PaymentMethod>) => {
+			state.paymentMethod = action.payload;
 		},
-		setNotes: (state, a: PayloadAction<string>) => {
-			state.notes = a.payload;
+		setNotes: (state, action: PayloadAction<string>) => {
+			state.notes = action.payload;
 		},
-		setPlacingOrder: (state, a: PayloadAction<boolean>) => {
-			state.isPlacingOrder = a.payload;
+		setPlacingOrder: (state, action: PayloadAction<boolean>) => {
+			state.isPlacingOrder = action.payload;
 		},
 		resetCheckout: () => initialState,
 	},
@@ -58,4 +51,5 @@ export const {
 } = checkoutSlice.actions;
 export default checkoutSlice.reducer;
 
-export const selectCheckout = (s: any) => s.checkout as CheckoutState;
+export const selectCheckout = (state: RootState) =>
+	state.checkout as CheckoutState;

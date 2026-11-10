@@ -1,14 +1,12 @@
 import {
+	dummyAddress,
 	dummyCart,
 	dummyOrders,
 	dummyProducts,
-	dummyWishlist,
-	dummyAddress,
 	dummyUser,
-} from "@/assets/assets";
-import { Address, Cart, Order, Product } from "./types";
-import { User } from "@/constants/types";
-// import { Cart, Order, Product, Address, User } from "@/constants/types";
+	dummyWishlist,
+} from "@/constants/dummyData";
+import { Address, Cart, Order, Product, User } from "@/constants/types";
 
 // Deep clone so we don't mutate the original file
 export const mockDb = {
@@ -24,7 +22,7 @@ export const delay = (ms = 400) => new Promise((r) => setTimeout(r, ms));
 
 export const recalcCart = () => {
 	mockDb.cart.totalAmount = mockDb.cart.items.reduce(
-		(s: any, i: any) => s + i.price * i.quantity,
+		(state: any, item: any) => state + item.price * item.quantity,
 		0,
 	);
 };

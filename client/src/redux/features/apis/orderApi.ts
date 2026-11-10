@@ -1,4 +1,4 @@
-import { Order, Address, CartItem } from "@/constants/types";
+import { Order, CreateOrderRequest } from "@/constants/types";
 import { baseApi } from "./api";
 
 export const ordersApi = baseApi.injectEndpoints({
@@ -18,15 +18,7 @@ export const ordersApi = baseApi.injectEndpoints({
 			query: () => "/orders/my",
 			providesTags: ["Order"],
 		}),
-		createOrder: builder.mutation<
-			Order,
-			{
-				items: CartItem[];
-				shippingAddress: Address;
-				paymentMethod: "cash" | "stripe";
-				notes?: string;
-			}
-		>({
+		createOrder: builder.mutation<Order, CreateOrderRequest>({
 			query: (body) => ({ url: "/orders", method: "POST", body }),
 			invalidatesTags: ["Order", "Cart"],
 		}),

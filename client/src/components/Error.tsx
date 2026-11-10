@@ -1,4 +1,3 @@
-import Ionicons from "@react-native-vector-icons/ionicons";
 import { Image } from "expo-image";
 import { View, Text, Pressable } from "react-native";
 

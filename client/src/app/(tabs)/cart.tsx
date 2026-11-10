@@ -1,7 +1,6 @@
 import Header from "@/components/Header";
 import { COLORS } from "@/constants";
 import {
-	clearCart,
 	decrement,
 	increment,
 	removeFromCart,
@@ -12,14 +11,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { useRouter } from "expo-router";
-import {
-	View,
-	Text,
-	Image,
-	ScrollView,
-	TouchableOpacity,
-	Alert,
-} from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 

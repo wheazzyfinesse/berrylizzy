@@ -5,9 +5,9 @@ import {
 	FetchArgs,
 	FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { delay, mockDb } from "@/redux/lib/mockdb";
+import { dummyOrders } from "@/constants/dummyData";
 
 export const USE_DUMMY = true;
 export const API_URL = "https://your-api.com/api";
@@ -92,10 +92,11 @@ const baseQueryWithMock: BaseQueryFn<
 			const newOrder = {
 				...body,
 				_id: Date.now().toString(),
-				orderNumber: `ORD-${Date.now()}`,
+				orderNumber: `DEV-${Date.now()}`,
 				createdAt: new Date().toISOString(),
 			};
 			mockDb.orders.unshift(newOrder);
+			dummyOrders.unshift(newOrder);
 			return { data: newOrder };
 		}
 		if (method === "PATCH") {
