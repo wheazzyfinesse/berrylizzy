@@ -1,38 +1,24 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Image, ScrollView, Text, View, ActivityIndicator } from "react-native";
+import { Image, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
 import { COLORS } from "@/constants";
-import type { Order, Product } from "@/constants/types";
-import { dummyOrders } from "@/constants/dummyData";
+import type { Product } from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
+import { useGetOrderByIdQuery } from "@/redux/features/apis/orderApi";
+import Error from "@/components/Error";
 
 export default function OrderDetails() {
 	const { id } = useLocalSearchParams();
-	const [order, setOrder] = useState<Order | null>(null);
-	const [loading, setLoading] = useState(true);
+	const { data: order, isLoading, isError } = useGetOrderByIdQuery(id);
 
-	const fetchOrderDetails = async () => {
-		setOrder(dummyOrders.find((order) => order._id === id) as any);
-		setLoading(false);
-	};
-
-	useEffect(() => {
-		fetchOrderDetails();
-	}, [id]);
-
-	if (loading) {
+	if (isLoading) {
 		return <Loading />;
 	}
 
-	if (!order) {
-		return (
-			<SafeAreaView className="flex-1 bg-surface justify-center items-center">
-				<Text>Order not found</Text>
-			</SafeAreaView>
-		);
+	if (isError || !order) {
+		return <Error message="No order found" />;
 	}
 
 	const formatDate = (dateString: string) => {

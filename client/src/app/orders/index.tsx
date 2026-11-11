@@ -1,43 +1,33 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
 import {
 	FlatList,
 	Text,
 	TouchableOpacity,
 	View,
-	ActivityIndicator,
 	ScrollView,
 	Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
 import { COLORS, getStatusColor } from "@/constants";
-import type { Order } from "@/constants/types";
-import { dummyOrders, formatDate } from "@/constants/dummyData";
+
+import { formatDate } from "@/constants/dummyData";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
+import { useGetOrdersQuery } from "@/redux/features/apis/orderApi";
+import Error from "@/components/Error";
 
 export default function Orders() {
 	const router = useRouter();
-	const [orders, setOrders] = useState<Order[]>([]);
-	const [loading, setLoading] = useState(true);
+	const { data: orders, isLoading, isError } = useGetOrdersQuery();
 
-	const fetchOrders = async () => {
-		setOrders(dummyOrders as any[]);
-		setLoading(false);
-	};
-
-	useEffect(() => {
-		fetchOrders();
-	}, []);
-
+	if (isError) return <Error message="Unable to load your orders" />;
+	if (isLoading) return <Loading />;
 	return (
 		<SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
 			<Header title="My Orders" showBack />
 
-			{loading ? (
-				<Loading />
-			) : orders.length === 0 ? (
+			{orders?.length === 0 ? (
 				<View className="flex-1 justify-center items-center">
 					<Text className="text-secondary text-lg">No orders found</Text>
 				</View>
@@ -91,7 +81,7 @@ export default function Orders() {
 
 							<View className="flex-row justify-between items-center mb-2">
 								<Text className="text-secondary text-xs">
-									Payment Method:{" "}
+									Payment Method:
 									<Text className="text-primary font-medium capitalize">
 										{item.paymentMethod}
 									</Text>

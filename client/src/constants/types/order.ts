@@ -16,12 +16,12 @@ export interface OrderShippingAddress {
 }
 
 export interface OrderItem {
-	_id: ID;
-	product: Product | ID;
+	productId: Product | ID;
 	name: string;
-	quantity: number;
 	price: number;
+	quantity: number;
 	size?: string;
+	image?: string[];
 }
 
 export interface Order extends BaseEntity {
@@ -42,13 +42,13 @@ export interface Order extends BaseEntity {
 }
 
 export interface CreateOrderRequest {
+	items: OrderItem[];
 	shippingAddress: OrderShippingAddress;
-	items: Array<{
-		productId: ID;
-		quantity: number;
-		size?: string;
-	}>;
 	paymentMethod: PaymentMethod;
+	subtotal: number;
+	shippingCost: number;
+	tax: number;
+	totalAmount: number;
 	notes?: string;
 }
 

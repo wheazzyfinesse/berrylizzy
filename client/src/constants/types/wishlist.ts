@@ -6,3 +6,4 @@ export type Wishlist = Product[];
 export interface AddToWishlistInput {
 	productId: ID;
 }
+export type WishlistState = { ids: string[]; items: Product[] };

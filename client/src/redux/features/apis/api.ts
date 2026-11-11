@@ -88,6 +88,7 @@ const baseQueryWithMock: BaseQueryFn<
 			}
 			return { data: mockDb.orders };
 		}
+
 		if (method === "POST") {
 			const newOrder = {
 				...body,
@@ -95,7 +96,7 @@ const baseQueryWithMock: BaseQueryFn<
 				orderNumber: `DEV-${Date.now()}`,
 				createdAt: new Date().toISOString(),
 			};
-			mockDb.orders.unshift(newOrder);
+			// mockDb.orders.unshift(newOrder);
 			dummyOrders.unshift(newOrder);
 			return { data: newOrder };
 		}

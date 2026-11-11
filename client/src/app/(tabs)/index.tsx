@@ -7,7 +7,7 @@ import { CATEGORIES } from "@/constants";
 import { BANNERS } from "@/constants/dummyData";
 import { useGetProductsQuery } from "@/redux/features/apis/productApi";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
 	Dimensions,
 	Image,
@@ -26,7 +26,6 @@ const Home = () => {
 	const {
 		data: products = [],
 		isLoading,
-		isFetching,
 		error,
 		refetch,
 	} = useGetProductsQuery();

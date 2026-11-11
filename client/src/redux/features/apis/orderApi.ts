@@ -15,7 +15,7 @@ export const ordersApi = baseApi.injectEndpoints({
 			providesTags: (r, e, id) => [{ type: "Order", id }],
 		}),
 		getMyOrders: builder.query<Order[], void>({
-			query: () => "/orders/my",
+			query: () => "/orders/user",
 			providesTags: ["Order"],
 		}),
 		createOrder: builder.mutation<Order, CreateOrderRequest>({

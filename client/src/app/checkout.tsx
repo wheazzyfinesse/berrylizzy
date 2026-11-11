@@ -5,7 +5,6 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	TextInput,
-	ActivityIndicator,
 	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -40,9 +39,11 @@ import { useCreateOrderMutation } from "@/redux/features/apis/orderApi";
 import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { COLORS } from "@/constants";
 import { CHECKOUT_STEPS, CheckoutStep, paymentMethod } from "@/constants/types";
+import Toast from "react-native-toast-message";
+import { delay } from "@/redux/lib/mockdb";
 
 const SHIPPING_COST = 2;
-const TAX = 0;
+const TAX = 0.5;
 
 const Checkout = () => {
 	const dispatch = useAppDispatch();
@@ -53,8 +54,8 @@ const Checkout = () => {
 	const subtotal = useAppSelector(selectCartSubtotal);
 	const cartQuantity = useAppSelector(selectCartCount);
 
-	const shipping = cartItems.length > 0 ? SHIPPING_COST : 0;
-	const total = subtotal + shipping + TAX;
+	const shippingCost = cartItems.length > 0 ? SHIPPING_COST : 0;
+	const totalAmount = subtotal + shippingCost + TAX;
 
 	const {
 		data: addresses = [],
@@ -94,13 +95,21 @@ const Checkout = () => {
 
 	const handlePlaceOrder = async () => {
 		if (!selectedAddress) {
-			Alert.alert("Address required", "Please select a delivery address.");
+			Toast.show({
+				type: "error",
+				text1: "Address required",
+				text2: "Please select a delivery address.",
+			});
 			dispatch(setStep(1));
 			return;
 		}
 
 		if (cartItems.length === 0) {
-			Alert.alert("Empty cart", "Your cart is empty.");
+			Toast.show({
+				type: "error",
+				text1: "Cart is empty",
+				text2: "Please go to shop and add a product to cart.",
+			});
 			router.back();
 			return;
 		}
@@ -108,10 +117,11 @@ const Checkout = () => {
 		// Stripe requires a payment-intent and payment confirmation flow.
 		// Do not create a paid Stripe order until that integration is complete.
 		if (checkout.paymentMethod === "stripe") {
-			Alert.alert(
-				"Stripe payment",
-				"Stripe payment processing has not yet been connected.",
-			);
+			Toast.show({
+				type: "error",
+				text1: "Stripe payment!",
+				text2: "Stripe payment processing has not yet been connected.",
+			});
 			return;
 		}
 
@@ -127,32 +137,35 @@ const Checkout = () => {
 					size: item.size,
 					quantity: item.quantity,
 				})),
-				addressId: selectedAddress._id,
 				shippingAddress: selectedAddress,
 				paymentMethod: checkout.paymentMethod,
 				notes: checkout.notes,
 				subtotal,
-				shipping,
+				shippingCost,
 				tax: TAX,
-				total,
+				totalAmount,
 			};
-
 			await createOrder(orderPayload).unwrap();
 
 			dispatch(clearCart());
 			dispatch(resetCheckout());
 
-			Alert.alert("Order placed", "Your order has been placed successfully.", [
-				{
-					text: "Continue shopping",
-					onPress: () => router.replace("/(tabs)"),
-				},
-			]);
+			Toast.show({
+				type: "success",
+				text1: "Order placed",
+				text2: "Your order has been placed successfully.",
+			});
+			delay(2000);
+			router.replace("/orders");
 		} catch (error: any) {
-			Alert.alert(
-				"Order failed",
-				error?.data?.message || "Unable to place your order. Please try again.",
-			);
+			console.log(error);
+			Toast.show({
+				type: "error",
+				text1: "Order failed",
+				text2:
+					error?.data?.message ||
+					"Unable to place your order. Please try again.",
+			});
 		} finally {
 			dispatch(setPlacingOrder(false));
 		}
@@ -532,7 +545,7 @@ const Checkout = () => {
 
 							<View className="flex-row justify-between mb-3">
 								<Text className="text-secondary">Shipping</Text>
-								<Text className="text-primary">{shipping.toFixed(2)}</Text>
+								<Text className="text-primary">{shippingCost.toFixed(2)}</Text>
 							</View>
 
 							<View className="flex-row justify-between mb-3">
@@ -543,7 +556,7 @@ const Checkout = () => {
 							<View className="border-t border-gray-200 pt-3 flex-row justify-between">
 								<Text className="font-bold text-primary text-lg">Total</Text>
 								<Text className="font-bold text-accent text-lg">
-									{total.toFixed(2)}
+									{totalAmount.toFixed(2)}
 								</Text>
 							</View>
 						</View>

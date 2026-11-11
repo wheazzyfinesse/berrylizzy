@@ -1,20 +1,24 @@
 import Header from "@/components/Header";
 import Loading from "@/components/Loading";
 import { COLORS, PROFILE_MENU } from "@/constants";
-import { useGetMeQuery } from "@/redux/features/apis/userApi";
-import { logout } from "@/redux/features/slices/authSlice";
+
 import { useAppDispatch } from "@/redux/lib/hooks";
+import { useUser, useClerk } from "@clerk/expo";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 const Profile = () => {
-	const { data: user, isLoading, isFetching, isError } = useGetMeQuery();
+	// const { data: user, isLoading, isFetching, isError } = useGetMeQuery();
 	const router = useRouter();
+	const { user, isLoaded, isSignedIn } = useUser();
+	const { signOut } = useClerk();
+
 	const dispatch = useAppDispatch();
-	const handleSignout = () => {
-		dispatch(logout());
-		router.replace("/sign-in");
+	const handleSignout = async () => {
+		await signOut();
+		// dispatch(logout());
+		router.replace("/");
 	};
 
 	return (
@@ -28,9 +32,9 @@ const Profile = () => {
 						: { paddingTop: 16 }
 				}
 			>
-				{isLoading ? (
+				{!isLoaded ? (
 					<Loading />
-				) : !user ? (
+				) : !user || !isSignedIn ? (
 					// Guest User Screen
 					<View className="items-center w-full">
 						<View className="w-24 h-24 rounded-full bg-gray-200 items-center justify-center mb-6">
