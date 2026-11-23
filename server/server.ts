@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { connectToMongoDB } from "./utils/mongodb.js";
+import { clerkMiddleware } from "@clerk/express";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,6 +11,7 @@ await connectToMongoDB();
 
 // Middleware
 app.use(cors());
+app.use(clerkMiddleware());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -117,7 +117,7 @@ const SignUpScreen = () => {
 				});
 				return;
 			}
-
+			// save user credential;s
 			router.replace("/");
 		} catch {
 			Toast.show({
