@@ -1,7 +1,10 @@
 import Error from "@/components/Error";
 import Loading from "@/components/Loading";
 import { COLORS } from "@/constants";
-import { useGetProductByIdQuery } from "@/redux/features/apis/productApi";
+import {
+	useGetProductasQuery,
+	useGetProductByIdQuery,
+} from "@/redux/features/apis/productApi";
 import {
 	addToCart,
 	selectCartCount,
@@ -35,6 +38,8 @@ const ProductDetails = () => {
 	const isLiked = useAppSelector(isInWishlist(id));
 	const cartCount = useAppSelector(selectCartCount);
 
+	const { data } = useGetProductasQuery();
+	console.log(data);
 	const { data: product, isLoading, refetch } = useGetProductByIdQuery(id);
 
 	const [selectedSize, setSelectedSize] = useState<string | null>(null);

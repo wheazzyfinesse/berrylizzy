@@ -35,6 +35,9 @@ export const productsApi = baseApi.injectEndpoints({
 						]
 					: ["Product"],
 		}),
+		getProductas: builder.query<string, void>({
+			query: () => `/psot`,
+		}),
 		getProductById: builder.query<Product, string>({
 			query: (id) => `/products/${id}`,
 			providesTags: (r, e, id) => [{ type: "Product", id }],
@@ -73,6 +76,7 @@ export const productsApi = baseApi.injectEndpoints({
 });
 
 export const {
+	useGetProductasQuery,
 	useGetProductsQuery,
 	useGetProductByIdQuery,
 	useGetFeaturedProductsQuery,

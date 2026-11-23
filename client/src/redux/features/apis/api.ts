@@ -10,7 +10,8 @@ import { delay, mockDb } from "@/redux/lib/mockdb";
 import { dummyOrders } from "@/constants/dummyData";
 
 export const USE_DUMMY = true;
-export const API_URL = "https://your-api.com/api";
+// export const API_URL = "https://berrylizzy.vercel.app/";
+export const API_URL = "http://localhost:5000/";
 
 const realBaseQuery = fetchBaseQuery({
 	baseUrl: API_URL,
@@ -27,7 +28,7 @@ const baseQueryWithMock: BaseQueryFn<
 	unknown,
 	FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-	if (!USE_DUMMY) return realBaseQuery(args, api, extraOptions);
+	if (USE_DUMMY) return realBaseQuery(args, api, extraOptions);
 	await delay(300);
 	const url = typeof args === "string" ? args : args.url;
 	const method = typeof args === "string" ? "GET" : (args.method ?? "GET");
