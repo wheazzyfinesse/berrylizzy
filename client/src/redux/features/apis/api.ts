@@ -11,7 +11,7 @@ import { dummyOrders } from "@/constants/dummyData";
 
 export const USE_DUMMY = true;
 // export const API_URL = "https://berrylizzy.vercel.app/";
-export const API_URL = "http://localhost:5000/api/";
+export const API_URL = "http://localhost:3000/api/";
 
 const realBaseQuery = fetchBaseQuery({
 	baseUrl: API_URL,

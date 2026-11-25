@@ -3,17 +3,39 @@ import User from "../models/Users.js";
 
 const makeAdmin = async () => {
 	try {
-		const email = process.env.ADMIN_EMAIL;
-		const user = await User.findOneAndUpdate({ email }, { role: "admin" });
-		if (!user) {
-			throw Error("user not found");
+		const email = process.env.ADMIN_EMAIL?.trim();
+
+		if (!email) {
+			console.info("Admin promotion skipped: ADMIN_EMAIL is not set");
+			return;
 		}
-		await clerkClient.users.updateUserMetadata(user.clerkId as string, {
+
+		const user = await User.findOne({ email });
+
+		if (!user) {
+			console.info(`Admin promotion skipped: no user found for ${email}`);
+			return;
+		}
+
+		if (!user.clerkId) {
+			console.warn(`Admin promotion skipped: ${email} has no Clerk ID`);
+			return;
+		}
+
+		await clerkClient.users.updateUserMetadata(user.clerkId, {
 			publicMetadata: { role: "admin" },
 		});
-	} catch (error: any) {
-		console.error("Admin promotion failed:", error.message);
+
+		user.role = "admin";
+		await user.save();
+
+		console.info(`Promoted ${email} to admin`);
+	} catch (error) {
+		console.error(
+			"Admin promotion failed:",
+			error instanceof Error ? error.message : error,
+		);
+		// Swallow the error so it doesn't prevent the server from starting.
 	}
 };
-
 export default makeAdmin;
