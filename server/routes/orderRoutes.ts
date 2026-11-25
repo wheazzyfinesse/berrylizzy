@@ -1,0 +1,37 @@
+import express from "express";
+import {
+	createPendingOrder,
+	deleteOrder,
+	getMyOrders,
+	getOrder,
+	getOrders,
+	paystackCallback,
+	updateOrder,
+	verifyPaystackOrder,
+} from "../controllers/orderControllers.js";
+import { authorize, protect } from "../middleware/auth.js";
+
+const OrderRouter = express.Router();
+
+// Static paths first, before "/:id"
+OrderRouter.post("/paystack/verify", protect, verifyPaystackOrder);
+OrderRouter.get("/paystack/callback", paystackCallback);
+OrderRouter.get("/mine", protect, getMyOrders);
+
+// Admin: read all orders
+OrderRouter.get("/", protect, authorize("admin"), getOrders);
+
+// Signed-in user: create an order
+OrderRouter.post("/", protect, createPendingOrder);
+
+// Signed-in user: read one order
+// getOrder must check that the user owns it, unless the user is an admin.
+OrderRouter.get("/:id", protect, getOrder);
+
+// Admin: update order details or fulfillment status
+OrderRouter.put("/:id", protect, authorize("admin"), updateOrder);
+
+// Admin: delete an order
+OrderRouter.delete("/:id", protect, authorize("admin"), deleteOrder);
+
+export default OrderRouter;

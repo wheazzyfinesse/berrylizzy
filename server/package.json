@@ -16,6 +16,7 @@
 	"devDependencies": {
 		"@types/cors": "^2.8.19",
 		"@types/express": "^5.0.6",
+		"@types/multer": "^2.3.0",
 		"@types/node": "^26.6.6",
 		"nodemon": "^3.1.14",
 		"ts-node": "github:types/express",
@@ -24,9 +25,11 @@
 	},
 	"dependencies": {
 		"@clerk/express": "^2.1.96",
+		"cloudinary": "^2.11.0",
 		"cors": "^2.8.6",
 		"dotenv": "^18.0.10",
 		"express": "^5.3.0",
-		"mongoose": "^9.12.2"
+		"mongoose": "^9.12.2",
+		"multer": "^2.5.0"
 	}
 }

@@ -1,4 +1,8 @@
-import { Order, CreateOrderRequest } from "@/constants/types";
+import {
+	Order,
+	CreateOrderRequest,
+	CreatePendingOrderResponse,
+} from "@/constants/types";
 import { baseApi } from "./api";
 
 export const ordersApi = baseApi.injectEndpoints({
@@ -10,47 +14,31 @@ export const ordersApi = baseApi.injectEndpoints({
 					? [...r.map((o) => ({ type: "Order" as const, id: o._id })), "Order"]
 					: ["Order"],
 		}),
-		getOrderById: builder.query<Order, string>({
+		getMyOrder: builder.query<Order[], void>({
+			query: () => "/orders/mine",
+			providesTags: (r) =>
+				r
+					? [...r.map((o) => ({ type: "Order" as const, id: o._id })), "Order"]
+					: ["Order"],
+		}),
+		getOrder: builder.query<Order, string>({
 			query: (id) => `/orders/${id}`,
 			providesTags: (r, e, id) => [{ type: "Order", id }],
 		}),
-		getMyOrders: builder.query<Order[], void>({
-			query: () => "/orders/user",
-			providesTags: ["Order"],
-		}),
-		createOrder: builder.mutation<Order, CreateOrderRequest>({
+		createPendingOrder: builder.mutation<
+			CreatePendingOrderResponse,
+			CreateOrderRequest
+		>({
 			query: (body) => ({ url: "/orders", method: "POST", body }),
 			invalidatesTags: ["Order", "Cart"],
 		}),
-		updateOrderStatus: builder.mutation<
-			Order,
-			{ id: string; orderStatus: Order["orderStatus"] }
-		>({
-			query: ({ id, orderStatus }) => ({
-				url: `/orders/${id}`,
-				method: "PATCH",
-				body: { orderStatus },
+		verifyPaystackPayment: builder.mutation<CreatePendingOrderResponse, any>({
+			query: (body) => ({
+				url: "/orders/paystack/verify",
+				method: "POST",
+				body,
 			}),
-			invalidatesTags: (r, e, { id }) => [{ type: "Order", id }],
-		}),
-		updatePaymentStatus: builder.mutation<
-			Order,
-			{ id: string; paymentStatus: Order["paymentStatus"] }
-		>({
-			query: ({ id, paymentStatus }) => ({
-				url: `/orders/${id}`,
-				method: "PATCH",
-				body: { paymentStatus },
-			}),
-			invalidatesTags: (r, e, { id }) => [{ type: "Order", id }],
-		}),
-		cancelOrder: builder.mutation<Order, string>({
-			query: (id) => ({
-				url: `/orders/${id}`,
-				method: "PATCH",
-				body: { orderStatus: "cancelled" },
-			}),
-			invalidatesTags: ["Order"],
+			invalidatesTags: ["Order", "Cart"],
 		}),
 		deleteOrder: builder.mutation<{ success: boolean }, string>({
 			query: (id) => ({ url: `/orders/${id}`, method: "DELETE" }),
@@ -61,11 +49,9 @@ export const ordersApi = baseApi.injectEndpoints({
 
 export const {
 	useGetOrdersQuery,
-	useGetOrderByIdQuery,
-	useGetMyOrdersQuery,
-	useCreateOrderMutation,
-	useUpdateOrderStatusMutation,
-	useUpdatePaymentStatusMutation,
-	useCancelOrderMutation,
+	useGetOrderQuery,
+	useGetMyOrderQuery,
+	useCreatePendingOrderMutation,
+	useVerifyPaystackPaymentMutation,
 	useDeleteOrderMutation,
 } = ordersApi;

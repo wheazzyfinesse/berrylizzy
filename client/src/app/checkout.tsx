@@ -5,7 +5,6 @@ import {
 	ScrollView,
 	TouchableOpacity,
 	TextInput,
-	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -35,7 +34,10 @@ import {
 
 import { useGetAddressesQuery } from "@/redux/features/apis/addressApi";
 
-import { useCreateOrderMutation } from "@/redux/features/apis/orderApi";
+import {
+	useCreatePendingOrderMutation,
+	useVerifyPaystackPaymentMutation,
+} from "@/redux/features/apis/orderApi";
 import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { COLORS } from "@/constants";
 import { CHECKOUT_STEPS, CheckoutStep, paymentMethod } from "@/constants/types";
@@ -63,7 +65,10 @@ const Checkout = () => {
 		isError: addressesError,
 	} = useGetAddressesQuery();
 
-	const [createOrder, { isLoading: orderLoading }] = useCreateOrderMutation();
+	const [createPendingOrder, { isLoading: orderLoading }] =
+		useCreatePendingOrderMutation();
+	const [verifyPaystackPayment, { isLoading: PaymentLoading }] =
+		useVerifyPaystackPaymentMutation();
 
 	const selectedAddress = addresses.find(
 		(address) => address._id === checkout.selectedAddressId,
@@ -81,7 +86,11 @@ const Checkout = () => {
 
 	const handleNext = () => {
 		if (checkout.step === 1 && !checkout.selectedAddressId) {
-			Alert.alert("Select an address", "Please select a delivery address.");
+			Toast.show({
+				type: "error",
+				text1: "Select an address",
+				text2: "Please select a delivery address.",
+			});
 			return;
 		}
 
@@ -114,49 +123,38 @@ const Checkout = () => {
 			return;
 		}
 
-		// Stripe requires a payment-intent and payment confirmation flow.
-		// Do not create a paid Stripe order until that integration is complete.
-		if (checkout.paymentMethod === "stripe") {
-			Toast.show({
-				type: "error",
-				text1: "Stripe payment!",
-				text2: "Stripe payment processing has not yet been connected.",
-			});
-			return;
-		}
-
 		try {
 			dispatch(setPlacingOrder(true));
 
 			const orderPayload = {
-				items: cartItems.map((item) => ({
+				orderItems: cartItems.map((item) => ({
 					productId: item.product._id,
-					name: item.product.name,
-					price: item.product.price,
-					image: item.product.images,
 					size: item.size,
 					quantity: item.quantity,
 				})),
 				shippingAddress: selectedAddress,
 				paymentMethod: checkout.paymentMethod,
 				notes: checkout.notes,
-				subtotal,
-				shippingCost,
-				tax: TAX,
-				totalAmount,
 			};
-			await createOrder(orderPayload).unwrap();
+			const orderCheckout = await createPendingOrder(orderPayload).unwrap();
 
-			dispatch(clearCart());
-			dispatch(resetCheckout());
+			if (orderCheckout.success) {
+				const verified = await verifyPaystackPayment({
+					reference: orderCheckout.data?.reference,
+				}).unwrap();
 
-			Toast.show({
-				type: "success",
-				text1: "Order placed",
-				text2: "Your order has been placed successfully.",
-			});
-			delay(2000);
-			router.replace("/orders");
+				if (verified.success) {
+					dispatch(clearCart());
+					dispatch(resetCheckout());
+					Toast.show({
+						type: "success",
+						text1: "Order placed",
+						text2: "Your order has been placed successfully.",
+					});
+					delay(2000);
+					router.replace("/orders");
+				}
+			}
 		} catch (error: any) {
 			console.log(error);
 			Toast.show({

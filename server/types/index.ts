@@ -10,6 +10,7 @@ export interface IAddress extends Document {
 	country: string;
 	isDefault: boolean;
 	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface ICartItem {
@@ -38,17 +39,10 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
 	user: Types.ObjectId;
-	orderNumber: string;
-	items: IOrderItem[];
-	shippingAddress: {
-		street: string;
-		city: string;
-		state: string;
-		zipCode: string;
-		country: string;
-	};
+	orderItems: IOrderItem[];
+	shippingAddress: IAddress;
 	paymentMethod: "cash" | "stripe";
-	paymentStatus: "pending" | "paid" | "failed" | "refunded";
+	paymentStatus: "pending" | "paid" | "unverified" | "failed" | "refunded";
 	paymentIntentId?: string;
 	orderStatus: "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 	subtotal: number;
@@ -56,6 +50,8 @@ export interface IOrder extends Document {
 	tax: number;
 	totalAmount: number;
 	notes?: string;
+	calculateSubtotal(): number;
+	calculateTotal(): number;
 	deliveredAt?: Date;
 	createdAt: Date;
 	updatedAt: Date;

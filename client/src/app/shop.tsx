@@ -30,7 +30,6 @@ const Shop = () => {
 			limit: 10,
 		},
 	);
-	console.log(data);
 	useEffect(() => {
 		if (!data) return;
 

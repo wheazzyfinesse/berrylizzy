@@ -23,16 +23,16 @@ const Home = () => {
 	const router = useRouter();
 	const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 	const categories = [{ id: "all", name: "All", icon: "grid" }, ...CATEGORIES];
-	const { data, isLoading, error, refetch } = useGetProductsQuery();
-	console.log(data);
+	const {
+		data: products = [],
+		isLoading,
+		error,
+		refetch,
+	} = useGetProductsQuery();
 
-	fetch("http://localhost:5000/products")
-		.then((response) => response.json())
-		.then((data) => console.log(data))
-		.catch((error) => console.error(error));
-	// if (error && products.length === 0) {
-	// 	return <Error onRetry={refetch} />;
-	// }
+	if (error && products.length === 0) {
+		return <Error onRetry={refetch} />;
+	}
 	return (
 		<SafeAreaView className="flex-1" edges={["top"]}>
 			<Header title="Berrylizzy Kidswear" showMenu showCart showLogo />
@@ -136,9 +136,9 @@ const Home = () => {
 						<Loading />
 					) : (
 						<View className="flex-row flex-wrap justify-between">
-							{/* {products.slice(0, 4).map((product) => (
+							{products.slice(0, 4).map((product) => (
 								<ProductCard key={product._id} product={product} />
-							))} */}
+							))}
 						</View>
 					)}
 				</View>

@@ -17,11 +17,8 @@ export interface OrderShippingAddress {
 
 export interface OrderItem {
 	productId: Product | ID;
-	name: string;
-	price: number;
 	quantity: number;
 	size?: string;
-	image?: string[];
 }
 
 export interface Order extends BaseEntity {
@@ -37,18 +34,23 @@ export interface Order extends BaseEntity {
 	tax: number;
 	totalAmount: number;
 	notes?: string;
-	paymentIntentId?: string;
+	paymentReference?: string;
 	deliveredAt?: string;
 }
+export type CreatePendingOrderResponse = {
+	success: boolean;
+	data: {
+		order: Order;
+		authorizationUrl: string;
+		reference: string;
+	};
+	message?: string;
+};
 
 export interface CreateOrderRequest {
-	items: OrderItem[];
+	orderItems: OrderItem[];
 	shippingAddress: OrderShippingAddress;
 	paymentMethod: PaymentMethod;
-	subtotal: number;
-	shippingCost: number;
-	tax: number;
-	totalAmount: number;
 	notes?: string;
 }
 
