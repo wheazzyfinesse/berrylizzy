@@ -109,7 +109,7 @@ export async function getOrder(req: AuthRequest, res: Response) {
 // POST /api/orders
 export async function createPendingOrder(req: AuthRequest, res: Response) {
 	const reserved: Array<{ productId: Types.ObjectId; quantity: number }> = [];
-
+	await releaseExpiredOrderReservations();
 	try {
 		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
@@ -316,7 +316,6 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 // POST /api/orders/paystack/verify
 export async function verifyPaystackOrder(req: AuthRequest, res: Response) {
 	try {
-
 		const { reference } = req.body;
 		if (typeof reference !== "string" || !reference) {
 			return res.status(400).json({ message: "Payment reference is required" });
