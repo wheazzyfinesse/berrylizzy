@@ -50,7 +50,7 @@ export default function AddProduct() {
 
 	// Add Product
 	const handleSubmit = async () => {
-		if (!name || !price || !category || sizes.length < 1) {
+		if (!name || !price || !category || !stock || sizes.length < 1) {
 			Toast.show({
 				type: "error",
 				text1: "Missing Fields",

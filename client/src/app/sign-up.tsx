@@ -15,10 +15,11 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthButton from "@/components/auth/AuthButton";
 import VerificationForm from "@/components/auth/VerificationForm";
+import { authService } from "@/redux/features/services/authServices";
 
 const SignUpScreen = () => {
 	const { signUp } = useSignUp();
-	const { isSignedIn } = useAuth();
+	const { isSignedIn, getToken } = useAuth();
 	const router = useRouter();
 
 	const [firstName, setFirstName] = useState("");
@@ -117,13 +118,20 @@ const SignUpScreen = () => {
 				});
 				return;
 			}
-			// save user credential;s
+			// save user credentials
+			const token = await getToken();
+
+			if (!token) {
+				throw new Error("Clerk did not return a session token");
+			}
+
+			await authService.saveToken(token);
 			router.replace("/");
-		} catch {
+		} catch (error) {
 			Toast.show({
 				type: "error",
 				text1: "Verification Failed",
-				text2: "Something went wrong",
+				text2: error instanceof Error ? error.message : "Something went wrong",
 			});
 		} finally {
 			setLoading(false);

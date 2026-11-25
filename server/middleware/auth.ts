@@ -8,11 +8,14 @@ export const protect = async (
 	next: NextFunction,
 ) => {
 	try {
+		const getauth = req.auth();
+		console.log(req);
 		const { userId } = getAuth(req);
+		console.log(userId);
 		if (!userId) {
 			return res.status(401).json({
 				success: false,
-				messager: "Not authorized",
+				message: "Not authorized 1",
 			});
 		}
 
@@ -45,4 +48,23 @@ export const authorize = (...roles: string[]) => {
 		}
 		next();
 	};
+};
+
+// controllers/authControllers.ts
+// GET /api/auth/me
+export const getMe = (req: Request, res: Response) => {
+	if (!req.user) {
+		return res.status(401).json({ message: "Not authorized from me" });
+	}
+
+	const user = req.user;
+
+	return res.status(200).json({
+		_id: String(user._id),
+		clerkId: user.clerkId,
+		name: user.name,
+		email: user.email,
+		image: user.image,
+		role: user.role,
+	});
 };

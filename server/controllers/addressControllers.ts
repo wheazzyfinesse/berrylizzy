@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import mongoose, { Types } from "mongoose";
 import Address from "../models/addressses.js";
+import { dummyAddress } from "../utils/dummyData.js";
 
 const validTypes = ["Home", "Work", "Other"] as const;
 
@@ -25,15 +26,11 @@ const hasRequiredAddressFields = (data: ReturnType<typeof getAddressInput>) =>
 
 export const getAddresses = async (req: Request, res: Response) => {
 	const userId = req.user?._id;
-
+	console.log(userId);
 	if (!userId) {
 		return res.status(401).json({ message: "Unauthorized" });
 	}
 	try {
-		if (!req.user) {
-			return res.status(401).json({ message: "Unauthorized" });
-		}
-
 		const addresses = await Address.find({ user: userId }).sort({
 			isDefault: -1,
 			createdAt: -1,
@@ -80,6 +77,7 @@ export const addAddress = async (req: Request, res: Response) => {
 	if (!req.user) {
 		return res.status(401).json({ message: "Unauthorized" });
 	}
+	console.log("first");
 
 	const data = getAddressInput(req.body);
 
@@ -125,11 +123,13 @@ export const addAddress = async (req: Request, res: Response) => {
 		if (!createdAddress) {
 			throw new Error("Address was not created");
 		}
-
-		return res.status(201).json(createdAddress);
+		console.log("done!");
+		return res.status(201).json({ success: true, data: createdAddress });
 	} catch (error) {
 		console.error(error);
-		return res.status(500).json({ message: "Could not create address" });
+		return res
+			.status(500)
+			.json({ success: false, message: "Could not create address" });
 	} finally {
 		await session.endSession();
 	}

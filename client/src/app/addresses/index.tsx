@@ -8,6 +8,8 @@ import {
 	TextInput,
 	ActivityIndicator,
 	Alert,
+	KeyboardAvoidingView,
+	Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
@@ -25,7 +27,8 @@ import {
 
 export default function Addresses() {
 	const addressTypes: AddressType[] = ["Home", "Work", "Other"];
-	const { data: addresses = [], isLoading: loading } = useGetAddressesQuery();
+	const { data, isLoading: loading } = useGetAddressesQuery();
+	const addresses = data?.data;
 
 	const [addAddress, { isLoading: isAdding }] = useAddAddressMutation();
 	const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation();
@@ -96,6 +99,7 @@ export default function Addresses() {
 			!data.phone
 		) {
 			Toast.show({
+				type: "info",
 				text1: "Missing information",
 				text2: "Complete all address fields.",
 			});
@@ -106,13 +110,15 @@ export default function Addresses() {
 			if (isEditing && editingId) {
 				await updateAddress({ id: editingId, data }).unwrap();
 			} else {
-				await addAddress(data).unwrap();
+				const result = await addAddress(data).unwrap();
 			}
 
 			setModalVisible(false);
 			resetForm();
 		} catch (error: any) {
+			console.log(error);
 			Toast.show({
+				type: "error",
 				text1: "Could not save address",
 				text2: error?.data?.message ?? "Please try again.",
 			});
@@ -124,6 +130,7 @@ export default function Addresses() {
 			await setDefaultAddress(id).unwrap();
 		} catch (error: any) {
 			Toast.show({
+				type: "error",
 				text1: "Could not update default address",
 				text2: error?.data?.message ?? "Please try again.",
 			});
@@ -165,12 +172,12 @@ export default function Addresses() {
 				</View>
 			) : (
 				<ScrollView className="flex-1 px-4 pt-4">
-					{addresses.length === 0 ? (
+					{addresses?.length === 0 ? (
 						<Text className="text-center text-secondary mt-10">
 							No addresses found
 						</Text>
 					) : (
-						addresses.map((item) => (
+						addresses?.map((item) => (
 							<View
 								key={item._id}
 								className="bg-white p-4 rounded-xl mb-4 shadow-sm"
@@ -243,120 +250,135 @@ export default function Addresses() {
 				visible={modalVisible}
 				onRequestClose={() => setModalVisible(false)}
 			>
-				<View className="flex-1 justify-end bg-black/50">
-					<View className="bg-white rounded-t-3xl p-6 h-[85%]">
-						<View className="flex-row justify-between items-center mb-6">
-							<Text className="text-xl font-bold text-primary">
-								{isEditing ? "Edit Address" : "Add New Address"}
-							</Text>
-							<TouchableOpacity onPress={() => setModalVisible(false)}>
-								<Ionicons name="close" size={24} color={COLORS.primary} />
-							</TouchableOpacity>
-						</View>
+				<KeyboardAvoidingView
+					className="flex-1"
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					keyboardVerticalOffset={0}
+				>
+					<View className="flex-1 justify-end bg-black/50">
+						<View className="bg-white rounded-t-3xl p-6 h-[85%]">
+							<View className="flex-row justify-between items-center mb-6">
+								<Text className="text-xl font-bold text-primary">
+									{isEditing ? "Edit Address" : "Add New Address"}
+								</Text>
+								<TouchableOpacity onPress={() => setModalVisible(false)}>
+									<Ionicons name="close" size={24} color={COLORS.primary} />
+								</TouchableOpacity>
+							</View>
 
-						<ScrollView showsVerticalScrollIndicator={false}>
-							<Text className="text-primary font-medium mb-2">Label</Text>
-							<View className="flex-row gap-3 mb-4">
-								{addressTypes.map((t) => (
-									<TouchableOpacity
-										key={t}
-										onPress={() => setType(t)}
-										className={`px-4 py-2 rounded-full border ${type === t ? "bg-primary border-primary" : "bg-white border-gray-300"}`}
-									>
-										<Text
-											className={type === t ? "text-white" : "text-primary"}
+							<ScrollView showsVerticalScrollIndicator={false}>
+								<Text className="text-primary font-medium mb-2">Label</Text>
+								<View className="flex-row gap-3 mb-4">
+									{addressTypes.map((t) => (
+										<TouchableOpacity
+											key={t}
+											onPress={() => setType(t)}
+											className={`px-4 py-2 rounded-full border ${type === t ? "bg-primary border-primary" : "bg-white border-gray-300"}`}
 										>
-											{t}
+											<Text
+												className={type === t ? "text-white" : "text-primary"}
+											>
+												{t}
+											</Text>
+										</TouchableOpacity>
+									))}
+								</View>
+
+								<Text className="text-primary font-medium mb-2">
+									Street Address
+								</Text>
+								<TextInput
+									className="bg-surface p-4 rounded-xl text-primary mb-4"
+									placeholder="123 Main St"
+									value={street}
+									onChangeText={setStreet}
+								/>
+								<Text className="text-primary font-medium mb-2">Phone</Text>
+								<TextInput
+									className="bg-surface p-4 rounded-xl text-primary mb-4"
+									placeholder="+123 456 789 "
+									value={phone}
+									onChangeText={setPhone}
+								/>
+
+								<View className="flex-row gap-4 mb-4">
+									<View className="flex-1">
+										<Text className="text-primary font-medium mb-2">City</Text>
+										<TextInput
+											className="bg-surface p-4 rounded-xl text-primary"
+											placeholder="New York"
+											value={city}
+											onChangeText={setCity}
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="text-primary font-medium mb-2">State</Text>
+										<TextInput
+											className="bg-surface p-4 rounded-xl text-primary"
+											placeholder="NY"
+											value={state}
+											onChangeText={setState}
+										/>
+									</View>
+								</View>
+
+								<View className="flex-row gap-4 mb-4">
+									<View className="flex-1">
+										<Text className="text-primary font-medium mb-2">
+											Zip Code
 										</Text>
-									</TouchableOpacity>
-								))}
-							</View>
-
-							<Text className="text-primary font-medium mb-2">
-								Street Address
-							</Text>
-							<TextInput
-								className="bg-surface p-4 rounded-xl text-primary mb-4"
-								placeholder="123 Main St"
-								value={street}
-								onChangeText={setStreet}
-							/>
-
-							<View className="flex-row gap-4 mb-4">
-								<View className="flex-1">
-									<Text className="text-primary font-medium mb-2">City</Text>
-									<TextInput
-										className="bg-surface p-4 rounded-xl text-primary"
-										placeholder="New York"
-										value={city}
-										onChangeText={setCity}
-									/>
+										<TextInput
+											className="bg-surface p-4 rounded-xl text-primary"
+											placeholder="10001"
+											value={zipCode}
+											onChangeText={setZipCode}
+											keyboardType="numeric"
+										/>
+									</View>
+									<View className="flex-1">
+										<Text className="text-primary font-medium mb-2">
+											Country
+										</Text>
+										<TextInput
+											className="bg-surface p-4 rounded-xl text-primary"
+											placeholder="USA"
+											value={country}
+											onChangeText={setCountry}
+										/>
+									</View>
 								</View>
-								<View className="flex-1">
-									<Text className="text-primary font-medium mb-2">State</Text>
-									<TextInput
-										className="bg-surface p-4 rounded-xl text-primary"
-										placeholder="NY"
-										value={state}
-										onChangeText={setState}
-									/>
-								</View>
-							</View>
 
-							<View className="flex-row gap-4 mb-4">
-								<View className="flex-1">
-									<Text className="text-primary font-medium mb-2">
-										Zip Code
-									</Text>
-									<TextInput
-										className="bg-surface p-4 rounded-xl text-primary"
-										placeholder="10001"
-										value={zipCode}
-										onChangeText={setZipCode}
-										keyboardType="numeric"
-									/>
-								</View>
-								<View className="flex-1">
-									<Text className="text-primary font-medium mb-2">Country</Text>
-									<TextInput
-										className="bg-surface p-4 rounded-xl text-primary"
-										placeholder="USA"
-										value={country}
-										onChangeText={setCountry}
-									/>
-								</View>
-							</View>
-
-							<TouchableOpacity
-								className="flex-row items-center mb-8"
-								onPress={() => setIsDefault(!isDefault)}
-							>
-								<View
-									className={`w-5 h-5 border rounded mr-2 items-center justify-center ${isDefault ? "bg-primary border-primary" : "border-gray-300"}`}
+								<TouchableOpacity
+									className="flex-row items-center mb-8"
+									onPress={() => setIsDefault(!isDefault)}
 								>
-									{isDefault && (
-										<Ionicons name="checkmark" size={14} color="white" />
-									)}
-								</View>
-								<Text className="text-primary">Set as default address</Text>
-							</TouchableOpacity>
+									<View
+										className={`w-5 h-5 border rounded mr-2 items-center justify-center ${isDefault ? "bg-primary border-primary" : "border-gray-300"}`}
+									>
+										{isDefault && (
+											<Ionicons name="checkmark" size={14} color="white" />
+										)}
+									</View>
+									<Text className="text-primary">Set as default address</Text>
+								</TouchableOpacity>
 
-							<TouchableOpacity
-								className="w-full bg-primary py-4 rounded-full items-center mb-10"
-								onPress={handleSaveAddress}
-								disabled={submitting}
-							>
-								{submitting ? (
-									<ActivityIndicator color="white" />
-								) : (
-									<Text className="text-white font-bold text-lg">
-										Save Address
-									</Text>
-								)}
-							</TouchableOpacity>
-						</ScrollView>
+								<TouchableOpacity
+									className="w-full bg-primary py-4 rounded-full items-center mb-10"
+									onPress={handleSaveAddress}
+									disabled={submitting}
+								>
+									{submitting ? (
+										<ActivityIndicator color="white" />
+									) : (
+										<Text className="text-white font-bold text-lg">
+											Save Address
+										</Text>
+									)}
+								</TouchableOpacity>
+							</ScrollView>
+						</View>
 					</View>
-				</View>
+				</KeyboardAvoidingView>
 			</Modal>
 		</SafeAreaView>
 	);

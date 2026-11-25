@@ -23,12 +23,9 @@ const Home = () => {
 	const router = useRouter();
 	const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 	const categories = [{ id: "all", name: "All", icon: "grid" }, ...CATEGORIES];
-	const {
-		data: products = [],
-		isLoading,
-		error,
-		refetch,
-	} = useGetProductsQuery();
+	const { data, isLoading, error, refetch } = useGetProductsQuery();
+
+	const products = data?.data;
 
 	return (
 		<SafeAreaView className="flex-1" edges={["top"]}>
@@ -131,11 +128,13 @@ const Home = () => {
 					</View>
 					{isLoading ? (
 						<Loading />
-					) : error && products.length === 0 ? (
-						<Error onRetry={refetch} />
+					) : error && products?.length === 0 ? (
+						<View>
+							<Error onRetry={refetch} />
+						</View>
 					) : (
 						<View className="flex-row flex-wrap justify-between">
-							{products.slice(0, 4).map((product) => (
+							{products?.slice(0, 4).map((product) => (
 								<ProductCard key={product._id} product={product} />
 							))}
 						</View>

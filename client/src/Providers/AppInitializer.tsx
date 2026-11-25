@@ -4,6 +4,8 @@ import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { logout, setUser } from "@/redux/features/slices/authSlice";
 import { setResolvedTheme } from "@/redux/features/slices/themeSlice";
 import { authService } from "@/redux/features/services/authServices";
+import { useAuth } from "@clerk/expo";
+import { setApiTokenGetter } from "@/redux/features/services/apiToken";
 
 type Props = {
 	children: React.ReactNode;
@@ -15,28 +17,36 @@ const AppInitializer = ({ children }: Props) => {
 	const themeMode = useAppSelector((state) => state.theme.mode);
 
 	const [initialized, setInitialized] = useState(false);
+	const { getToken, isLoaded, isSignedIn } = useAuth();
 
 	useEffect(() => {
+		setApiTokenGetter(getToken);
+		return () => setApiTokenGetter(null);
+	}, [getToken]);
+
+	useEffect(() => {
+		if (!isLoaded) return;
+
 		const initialize = async () => {
 			try {
-				// 1. Restore authentication
-				const user = await authService.restoreSession();
-
-				if (user) {
-					dispatch(setUser(user));
-				} else {
+				if (!isSignedIn) {
 					dispatch(logout());
+					return;
 				}
+
+				const user = await authService.restoreSession(getToken);
+				console.log("first");
+				if (user) dispatch(setUser(user));
+				else dispatch(logout());
 			} catch (error) {
 				console.error("App initialization failed:", error);
-				dispatch(logout());
 			} finally {
 				setInitialized(true);
 			}
 		};
 
-		initialize();
-	}, [dispatch]);
+		void initialize();
+	}, [dispatch, getToken, isLoaded, isSignedIn]);
 
 	// 2. Apply the correct theme
 	useEffect(() => {

@@ -14,12 +14,12 @@ import { useAuth, useSignIn } from "@clerk/expo";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthButton from "@/components/auth/AuthButton";
 import AuthHeader from "@/components/auth/AuthHeader";
+import { authService } from "@/redux/features/services/authServices";
 
 const SignInScreen = () => {
-	const { isSignedIn } = useAuth();
+	const { isSignedIn, getToken } = useAuth();
 	const { signIn } = useSignIn();
 	const router = useRouter();
-	console.log(isSignedIn);
 	const [emailAddress, setEmailAddress] = useState("");
 	const [password, setPassword] = useState("");
 	const [loading, setLoading] = useState(false);
@@ -60,6 +60,14 @@ const SignInScreen = () => {
 						router.replace("/");
 					},
 				});
+				// save user credentials
+				const token = await getToken();
+
+				if (!token) {
+					throw new Error("Clerk did not return a session token");
+				}
+
+				await authService.saveToken(token);
 			}
 			Toast.show({
 				type: "success",

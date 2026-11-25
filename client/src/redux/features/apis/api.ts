@@ -8,16 +8,19 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { delay, mockDb } from "@/redux/lib/mockdb";
 import { dummyOrders } from "@/constants/dummyData";
+import { getClerkInstance } from "@clerk/expo";
 
-export const USE_DUMMY = true;
-export const API_URL = "https://berrylizzy.vercel.app/api/";
-// export const API_URL = "http://localhost:3000/api/";
+export const USE_DUMMY = false;
+// export const API_URL = "https://berrylizzy.vercel.app/api/";
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 const realBaseQuery = fetchBaseQuery({
 	baseUrl: API_URL,
 	prepareHeaders: async (headers) => {
 		// const token = await AsyncStorage.getItem("token");
-		const token = await SecureStore.getItemAsync("access_token");
+		// const token = await SecureStore.getItemAsync("access_token");
+
+		const token = await getClerkInstance().session?.getToken();
 		if (token) headers.set("Authorization", `Bearer ${token}`);
 		return headers;
 	},
@@ -28,7 +31,7 @@ const baseQueryWithMock: BaseQueryFn<
 	unknown,
 	FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-	if (USE_DUMMY) return realBaseQuery(args, api, extraOptions);
+	if (!USE_DUMMY) return realBaseQuery(args, api, extraOptions);
 	await delay(300);
 	const url = typeof args === "string" ? args : args.url;
 	const method = typeof args === "string" ? "GET" : (args.method ?? "GET");

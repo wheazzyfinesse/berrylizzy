@@ -28,3 +28,7 @@ export type UpdateProductInput = Partial<CreateProductInput>;
 export interface ProductCardProps {
 	product: Product;
 }
+export interface ProductApiResponse {
+	sucess: boolean;
+	data: Product[];
+}

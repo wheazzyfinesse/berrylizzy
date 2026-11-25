@@ -1,11 +1,12 @@
 import * as SecureStore from "expo-secure-store";
 import { API_URL, USE_DUMMY } from "../apis/api";
+import { useAuth } from "@clerk/expo";
 
 const TOKEN_KEY = "access_token";
 
 export const authService = {
 	getToken: async () => {
-		return SecureStore.getItemAsync(TOKEN_KEY);
+		return await SecureStore.getItemAsync(TOKEN_KEY);
 	},
 
 	saveToken: async (token: string) => {
@@ -16,21 +17,19 @@ export const authService = {
 		await SecureStore.deleteItemAsync(TOKEN_KEY);
 	},
 
-	restoreSession: async () => {
+	restoreSession: async (getToken: () => Promise<string | null>) => {
 		if (USE_DUMMY) return null;
-		const token = await SecureStore.getItemAsync(TOKEN_KEY);
 
+		const token = await getToken();
 		if (!token) return null;
 
 		const response = await fetch(`${API_URL}/auth/me`, {
-			headers: {
-				Authorization: `Bearer ${token}`,
-			},
+			headers: { Authorization: `Bearer ${token}` },
 		});
 
+		if (response.status === 401 || response.status === 403) return null;
 		if (!response.ok) {
-			await SecureStore.deleteItemAsync(TOKEN_KEY);
-			return null;
+			throw new Error(`Session check failed: ${response.status}`);
 		}
 
 		return response.json();

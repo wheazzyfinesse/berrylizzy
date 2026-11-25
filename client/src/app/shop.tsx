@@ -24,12 +24,17 @@ const Shop = () => {
 	const [products, setProducts] = useState<Product[]>([]);
 	const [hasMore, setHasMore] = useState(true);
 
-	const { data, isLoading, isFetching, isError, refetch } = useGetProductsQuery(
-		{
-			page,
-			limit: 10,
-		},
-	);
+	const {
+		data: response,
+		isLoading,
+		isFetching,
+		isError,
+		refetch,
+	} = useGetProductsQuery({
+		page,
+		limit: 10,
+	});
+	const data = response?.data;
 	useEffect(() => {
 		if (!data) return;
 

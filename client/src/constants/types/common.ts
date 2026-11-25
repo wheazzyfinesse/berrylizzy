@@ -1,3 +1,7 @@
+import { Address } from "./address";
+import { Order } from "./order";
+import { Product } from "./product";
+
 export type ID = string;
 export type ISODateString = string;
 
@@ -44,3 +48,8 @@ export type HeaderProps = {
 	showMenu?: boolean;
 	showLogo?: boolean;
 };
+export interface ApiResponse {
+	sucess: boolean;
+	data: Product | Order | Address;
+	message?: string;
+}

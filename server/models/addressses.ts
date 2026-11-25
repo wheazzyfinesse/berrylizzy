@@ -1,4 +1,4 @@
-import { Model, Schema, model, models } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import type { IAddress } from "../types/index.js";
 
 const AddressSchema = new Schema<IAddress>(
@@ -25,16 +25,13 @@ const AddressSchema = new Schema<IAddress>(
 	{ timestamps: true },
 );
 
-AddressSchema.index(
-	{ user: 1 },
-	{
-		unique: true,
-		partialFilterExpression: { isDefault: true },
-	},
-);
+// AddressSchema.index(
+// 	{ user: 1 },
+// 	{
+// 		unique: true,
+// 		partialFilterExpression: { isDefault: true },
+// 	},
+// );
 
-const Address =
-	(models.Address as Model<IAddress> | undefined) ??
-	model<IAddress>("Address", AddressSchema);
-
+const Address = mongoose.model<IAddress>("Address", AddressSchema);
 export default Address;
