@@ -35,28 +35,13 @@ export const productsApi = baseApi.injectEndpoints({
 						]
 					: ["Product"],
 		}),
-		getProductas: builder.query<string, void>({
-			query: () => `/psot`,
-		}),
-		getProductById: builder.query<Product, string>({
+		getProduct: builder.query<Product, string>({
 			query: (id) => `/products/${id}`,
 			providesTags: (r, e, id) => [{ type: "Product", id }],
 		}),
-		getFeaturedProducts: builder.query<Product[], void>({
-			query: () => ({ url: "/products", params: { featured: true } }),
-			providesTags: ["Product"],
-		}),
-		getProductsByCategory: builder.query<Product[], string>({
-			query: (category) => ({ url: "/products", params: { category } }),
-			providesTags: ["Product"],
-		}),
-		searchProducts: builder.query<Product[], string>({
-			query: (search) => ({ url: "/products", params: { search } }),
-			providesTags: ["Product"],
-		}),
 
 		// MUTATIONS
-		addProduct: builder.mutation<Product, ProductInput>({
+		createProduct: builder.mutation<Product, ProductInput>({
 			query: (body) => ({ url: "/products", method: "POST", body }),
 			invalidatesTags: ["Product"],
 		}),
@@ -76,13 +61,9 @@ export const productsApi = baseApi.injectEndpoints({
 });
 
 export const {
-	useGetProductasQuery,
 	useGetProductsQuery,
-	useGetProductByIdQuery,
-	useGetFeaturedProductsQuery,
-	useGetProductsByCategoryQuery,
-	useSearchProductsQuery,
-	useAddProductMutation,
+	useGetProductQuery,
+	useCreateProductMutation,
 	useUpdateProductMutation,
 	useDeleteProductMutation,
 } = productsApi;

@@ -30,9 +30,6 @@ const Home = () => {
 		refetch,
 	} = useGetProductsQuery();
 
-	if (error && products.length === 0) {
-		return <Error onRetry={refetch} />;
-	}
 	return (
 		<SafeAreaView className="flex-1" edges={["top"]}>
 			<Header title="Berrylizzy Kidswear" showMenu showCart showLogo />
@@ -134,6 +131,8 @@ const Home = () => {
 					</View>
 					{isLoading ? (
 						<Loading />
+					) : error && products.length === 0 ? (
+						<Error onRetry={refetch} />
 					) : (
 						<View className="flex-row flex-wrap justify-between">
 							{products.slice(0, 4).map((product) => (

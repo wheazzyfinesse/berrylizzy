@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
 	ScrollView,
 	Text,
@@ -7,41 +7,46 @@ import {
 	Modal,
 	TextInput,
 	ActivityIndicator,
+	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
 import { COLORS } from "@/constants";
-import type { Address } from "@/constants/types";
-import { dummyAddress } from "@/constants/dummyData";
+import type { Address, AddressType } from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
+import Toast from "react-native-toast-message";
+import {
+	useAddAddressMutation,
+	useDeleteAddressMutation,
+	useGetAddressesQuery,
+	useSetDefaultAddressMutation,
+	useUpdateAddressMutation,
+} from "@/redux/features/apis/addressApi";
 
 export default function Addresses() {
-	const [addresses, setAddresses] = useState<Address[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [modalVisible, setModalVisible] = useState(false);
+	const addressTypes: AddressType[] = ["Home", "Work", "Other"];
+	const { data: addresses = [], isLoading: loading } = useGetAddressesQuery();
+
+	const [addAddress, { isLoading: isAdding }] = useAddAddressMutation();
+	const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation();
+	const [setDefaultAddress] = useSetDefaultAddressMutation();
+	const [deleteAddress] = useDeleteAddressMutation();
+
+	const submitting = isAdding || isUpdating;
 
 	// Form state
-	const [type, setType] = useState("Home");
+	const [type, setType] = useState<AddressType>("Home");
 	const [street, setStreet] = useState("");
 	const [city, setCity] = useState("");
 	const [state, setState] = useState("");
 	const [zipCode, setZipCode] = useState("");
 	const [country, setCountry] = useState("");
+	const [phone, setPhone] = useState("");
 	const [isDefault, setIsDefault] = useState(false);
-	const [submitting, setSubmitting] = useState(false);
 
-	// Edit state
 	const [isEditing, setIsEditing] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
-
-	useEffect(() => {
-		fetchAddresses();
-	}, []);
-
-	const fetchAddresses = async () => {
-		setAddresses(dummyAddress as any);
-		setLoading(false);
-	};
+	const [modalVisible, setModalVisible] = useState(false);
 
 	const handleEditSearch = (item: Address) => {
 		setIsEditing(true);
@@ -52,28 +57,97 @@ export default function Addresses() {
 		setState(item.state);
 		setZipCode(item.zipCode);
 		setCountry(item.country);
+		setPhone(item.phone);
 		setIsDefault(item.isDefault);
 		setModalVisible(true);
 	};
 
-	const handleSaveAddress = async () => {
-		setModalVisible(false);
-		resetForm();
-		fetchAddresses();
-	};
-
-	const handleDeleteAddress = async (id: string) => {};
-
 	const resetForm = () => {
+		setType("Home");
 		setStreet("");
 		setCity("");
 		setState("");
 		setZipCode("");
 		setCountry("");
-		setType("Home");
+		setPhone("");
 		setIsDefault(false);
 		setIsEditing(false);
 		setEditingId(null);
+	};
+
+	const handleSaveAddress = async () => {
+		const data = {
+			type,
+			street: street.trim(),
+			city: city.trim(),
+			state: state.trim(),
+			zipCode: zipCode.trim(),
+			country: country.trim(),
+			phone: phone.trim(),
+			isDefault,
+		};
+
+		if (
+			!data.street ||
+			!data.city ||
+			!data.state ||
+			!data.zipCode ||
+			!data.country ||
+			!data.phone
+		) {
+			Toast.show({
+				text1: "Missing information",
+				text2: "Complete all address fields.",
+			});
+			return;
+		}
+
+		try {
+			if (isEditing && editingId) {
+				await updateAddress({ id: editingId, data }).unwrap();
+			} else {
+				await addAddress(data).unwrap();
+			}
+
+			setModalVisible(false);
+			resetForm();
+		} catch (error: any) {
+			Toast.show({
+				text1: "Could not save address",
+				text2: error?.data?.message ?? "Please try again.",
+			});
+		}
+	};
+
+	const handleSetDefaultAddress = async (id: string) => {
+		try {
+			await setDefaultAddress(id).unwrap();
+		} catch (error: any) {
+			Toast.show({
+				text1: "Could not update default address",
+				text2: error?.data?.message ?? "Please try again.",
+			});
+		}
+	};
+
+	const handleDeleteAddress = (id: string) => {
+		Alert.alert("Delete address?", "This address will be removed.", [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: "Delete",
+				style: "destructive",
+				onPress: async () => {
+					try {
+						await deleteAddress(id).unwrap();
+					} catch (error: any) {
+						Toast.show({
+							text1: "Could not delete address",
+							text2: error?.data?.message ?? "Please try again.",
+						});
+					}
+				},
+			},
+		]);
 	};
 
 	const openAddModal = () => {
@@ -183,7 +257,7 @@ export default function Addresses() {
 						<ScrollView showsVerticalScrollIndicator={false}>
 							<Text className="text-primary font-medium mb-2">Label</Text>
 							<View className="flex-row gap-3 mb-4">
-								{["Home", "Work", "Other"].map((t) => (
+								{addressTypes.map((t) => (
 									<TouchableOpacity
 										key={t}
 										onPress={() => setType(t)}

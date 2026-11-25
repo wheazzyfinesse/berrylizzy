@@ -1,6 +1,7 @@
 import { type Request, type Response } from "express";
 import Product from "../models/products.js";
 import cloudinary from "../utils/cloudinary.js";
+import { dummyProducts } from "../utils/dummyData.js";
 
 // Get All Products
 // GET /api/products
@@ -54,23 +55,27 @@ export const createProduct = async (req: Request, res: Response) => {
 		let images = [];
 
 		// Handle File Upload
-		if (req.files && (req.files as any).length > 0) {
-			const uploadPromises = (req.files as any).map(() => {
-				return new Promise((resolve, reject) => {
+		const files = (req.files ?? []) as Express.Multer.File[];
+
+		const uploadPromises: Promise<string>[] = files.map(
+			(file) =>
+				new Promise<string>((resolve, reject) => {
 					const uploadStream = cloudinary.uploader.upload_stream(
-						{
-							folder: "berrylizzy/products",
-						},
+						{ folder: "berrylizzy/products" },
 						(error, result) => {
-							if (error) reject(error);
-							else resolve(result!.secure_url);
+							if (error) return reject(error);
+							if (!result)
+								return reject(new Error("Cloudinary returned no result"));
+
+							resolve(result.secure_url);
 						},
 					);
+
 					uploadStream.end(file.buffer);
-				});
-			});
-			images = await Promise.all(uploadPromises);
-		}
+				}),
+		);
+
+		images = await Promise.all(uploadPromises);
 
 		let sizes = req.body.sizes || [];
 		if (typeof sizes === "string") {
@@ -102,7 +107,7 @@ export const createProduct = async (req: Request, res: Response) => {
 
 		res.status(201).json({
 			success: true,
-			data: product,
+			data: dummyProducts,
 		});
 	} catch (error: any) {
 		res.status(500).json({ success: false, message: error.message });
@@ -124,22 +129,27 @@ export const updateProduct = async (req: Request, res: Response) => {
 		}
 
 		// Handle File Upload
-		if (req.files && (req.files as any).length > 0) {
-			const uploadPromises = (req.files as any).map(() => {
-				return new Promise((resolve, reject) => {
+		const files = (req.files ?? []) as Express.Multer.File[];
+
+		const uploadPromises: Promise<string>[] = files.map(
+			(file) =>
+				new Promise<string>((resolve, reject) => {
 					const uploadStream = cloudinary.uploader.upload_stream(
 						{ folder: "berrylizzy/products" },
 						(error, result) => {
-							if (error) reject(error);
-							else resolve(result!.secure_url);
+							if (error) return reject(error);
+							if (!result)
+								return reject(new Error("Cloudinary returned no result"));
+
+							resolve(result.secure_url);
 						},
 					);
+
 					uploadStream.end(file.buffer);
-				});
-			});
-			const newImages = await Promise.all(uploadPromises);
-			images = [...images, ...newImages];
-		}
+				}),
+		);
+
+		images = await Promise.all(uploadPromises);
 
 		const updates = { ...req.body };
 		if (req.body.size) {

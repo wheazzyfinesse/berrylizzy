@@ -1,4 +1,15 @@
 import express from "express";
+// import {
+// 	createPendingOrder,
+// 	deleteOrder,
+// 	getMyOrders,
+// 	getOrder,
+// 	getOrders,
+// 	paystackCallback,
+// 	updateOrder,
+// 	verifyPaystackOrder,
+// } from "../controllers/orderControllers.js";
+import { authorize, protect } from "../middleware/auth.js";
 import {
 	createPendingOrder,
 	deleteOrder,
@@ -9,7 +20,6 @@ import {
 	updateOrder,
 	verifyPaystackOrder,
 } from "../controllers/orderControllers.js";
-import { authorize, protect } from "../middleware/auth.js";
 
 const OrderRouter = express.Router();
 

@@ -12,33 +12,13 @@ import { releaseExpiredOrderReservations } from "./controllers/orderControllers.
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const publishableKey = process.env.CLERK_PUBLISHABLE_KEY?.trim();
-const secretKey = process.env.CLERK_SECRET_KEY?.trim();
-
-if (!publishableKey || !secretKey) {
-	throw new Error("Clerk keys are missing from the Express server environment");
-}
-
-// Then register your other middleware and routes.
 // Connect to Database
 await connectToMongoDB();
-app.get("/__debug", (_req, res) => {});
-app.get("/api", (req, res) => {
-	res.json({
-		entry: import.meta.url,
-		publishableKeyPrefix: publishableKey?.slice(0, 7),
-		publishableKeyLength: publishableKey?.length,
-		hasSecretKey: Boolean(secretKey),
-	});
-});
+
 app.post("/api/clerk", express.raw({ type: "application/json" }), clerkWebhook);
-console.log({
-	hasClerkPublishableKey: Boolean(process.env.CLERK_PUBLISHABLE_KEY),
-	hasClerkSecretKey: Boolean(process.env.CLERK_SECRET_KEY),
-	port: process.env.PORT,
-});
+
 // Middleware
-app.use(clerkMiddleware({ publishableKey, secretKey }));
+app.use(clerkMiddleware());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

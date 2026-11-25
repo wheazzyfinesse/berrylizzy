@@ -1,4 +1,8 @@
-import type { Address } from "@/constants/types";
+import type {
+	AddAddressRequest,
+	Address,
+	UpdateAddressInput,
+} from "@/constants/types";
 import { baseApi } from "./api";
 
 export const addressApi = baseApi.injectEndpoints({
@@ -17,13 +21,13 @@ export const addressApi = baseApi.injectEndpoints({
 			query: (id) => `/addresses/${id}`,
 			providesTags: (r, e, id) => [{ type: "Address", id }],
 		}),
-		addAddress: builder.mutation<Address, Omit<Address, "_id">>({
+		addAddress: builder.mutation<Address, AddAddressRequest>({
 			query: (body) => ({ url: "/addresses", method: "POST", body }),
 			invalidatesTags: ["Address"],
 		}),
 		updateAddress: builder.mutation<
 			Address,
-			{ id: string; data: Partial<Address> }
+			{ id: string; data: UpdateAddressInput }
 		>({
 			query: ({ id, data }) => ({
 				url: `/addresses/${id}`,

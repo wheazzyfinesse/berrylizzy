@@ -3,7 +3,7 @@ import mongoose, { Types } from "mongoose";
 import Order from "../models/orders.js";
 import Product from "../models/products.js";
 import { initializePaystackCheckout } from "../utils/paystack.js";
-import type { IOrderItem } from "../types/index.js";
+import type { IAddress, IOrder, IOrderItem } from "../types/index.js";
 
 type AuthRequest = Request & {
 	user?: {
@@ -59,7 +59,7 @@ export async function getOrders(_req: Request, res: Response) {
 }
 
 // GET /api/orders/mine
-export async function getMyOrders(req: AuthRequest, res: Response) {
+export async function getMyOrders(req: Request, res: Response) {
 	try {
 		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
@@ -77,10 +77,12 @@ export async function getMyOrders(req: AuthRequest, res: Response) {
 }
 
 // GET /api/orders/:id — owner or admin
-export async function getOrder(req: AuthRequest, res: Response) {
+export async function getOrder(req: Request, res: Response) {
+	const orderId = req.params.id;
 	try {
 		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-		if (!Types.ObjectId.isValid(req.params.id)) {
+
+		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
 			return res.status(400).json({ message: "Invalid order ID" });
 		}
 
@@ -107,7 +109,7 @@ export async function getOrder(req: AuthRequest, res: Response) {
 }
 
 // POST /api/orders
-export async function createPendingOrder(req: AuthRequest, res: Response) {
+export async function createPendingOrder(req: Request, res: Response) {
 	const reserved: Array<{ productId: Types.ObjectId; quantity: number }> = [];
 	await releaseExpiredOrderReservations();
 	try {
@@ -120,7 +122,7 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 			paymentMethod,
 		}: {
 			pendingOrderItems: OrderItemInput[];
-			shippingAddress: unknown;
+			shippingAddress?: IAddress;
 			notes?: string;
 			paymentMethod: "cash" | "paystack";
 		} = req.body;
@@ -193,7 +195,7 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 
 		// orderItems must already contain product IDs, DB prices, and validated quantities.
 		const session = await mongoose.startSession();
-		let order;
+		let order: InstanceType<typeof Order> | undefined;
 
 		try {
 			await session.withTransaction(async () => {
@@ -217,6 +219,9 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 				let createdOrder: InstanceType<typeof Order> | undefined;
 
 				await session.withTransaction(async () => {
+					if (!req.user)
+						return res.status(401).json({ message: "Unauthorized" });
+
 					// Reserve product stock here, using { session }.
 
 					const orderDoc = new Order({
@@ -247,7 +252,9 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 		} finally {
 			await session.endSession();
 		}
-
+		if (!order) {
+			throw new Error("Order was not created");
+		}
 		// Initialize Paystack only after the transaction commits.
 		// If initialization fails, release the reservation in a separate transaction.
 		if (paymentMethod === "paystack") {
@@ -314,11 +321,14 @@ export async function createPendingOrder(req: AuthRequest, res: Response) {
 
 // Verify payment
 // POST /api/orders/paystack/verify
-export async function verifyPaystackOrder(req: AuthRequest, res: Response) {
+export async function verifyPaystackOrder(req: Request, res: Response) {
 	try {
 		const { reference } = req.body;
 		if (typeof reference !== "string" || !reference) {
 			return res.status(400).json({ message: "Payment reference is required" });
+		}
+		if (!req.user) {
+			return res.status(400).json({ message: "Not authorized" });
 		}
 
 		const order = await Order.findOne({
@@ -340,7 +350,7 @@ export async function verifyPaystackOrder(req: AuthRequest, res: Response) {
 			`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
 			{ headers: { Authorization: `Bearer ${secret}` } },
 		);
-		const result = await response.json();
+		const result: any = await response.json();
 		const transaction = result.data;
 
 		if (
@@ -375,8 +385,10 @@ export async function verifyPaystackOrder(req: AuthRequest, res: Response) {
 
 // PUT /api/orders/:id — admin may update fulfillment fields, never payment fields
 export async function updateOrder(req: Request, res: Response) {
+	const orderId = req.params.id;
+
 	try {
-		if (!Types.ObjectId.isValid(req.params.id)) {
+		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
 			return res.status(400).json({ message: "Invalid order ID" });
 		}
 
@@ -429,8 +441,10 @@ export async function updateOrder(req: Request, res: Response) {
 
 // DELETE /api/orders/:id — admin; paid orders are retained
 export async function deleteOrder(req: Request, res: Response) {
+	const orderId = req.params.id;
+
 	try {
-		if (!Types.ObjectId.isValid(req.params.id)) {
+		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
 			return res.status(400).json({ message: "Invalid order ID" });
 		}
 

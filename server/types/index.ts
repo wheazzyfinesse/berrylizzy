@@ -1,6 +1,6 @@
 import { Document, Types } from "mongoose";
 
-export interface IAddress extends Document {
+export interface IAddress {
 	user: Types.ObjectId;
 	type: "Home" | "Work" | "Other";
 	street: string;
@@ -8,23 +8,8 @@ export interface IAddress extends Document {
 	state: string;
 	zipCode: string;
 	country: string;
+	phone: string;
 	isDefault: boolean;
-	createdAt: Date;
-	updatedAt: Date;
-}
-
-export interface ICartItem {
-	product: Types.ObjectId;
-	quantity: number;
-	price: number;
-	size?: string;
-}
-
-export interface ICart extends Document {
-	user: Types.ObjectId;
-	items: ICartItem[];
-	totalAmount: number;
-	calculateTotal(): number;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -43,15 +28,15 @@ export interface IOrder extends Document {
 	shippingAddress: IAddress;
 	paymentMethod: "cash" | "stripe";
 	paymentStatus: "pending" | "paid" | "unverified" | "failed" | "refunded";
-	paymentIntentId?: string;
+	paymentReference?: string;
 	orderStatus: "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 	subtotal: number;
 	shippingCost: number;
 	tax: number;
+	stockReserved: boolean;
+	reservationExpiresAt: Date | null;
 	totalAmount: number;
 	notes?: string;
-	calculateSubtotal(): number;
-	calculateTotal(): number;
 	deliveredAt?: Date;
 	createdAt: Date;
 	updatedAt: Date;
