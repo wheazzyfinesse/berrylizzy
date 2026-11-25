@@ -17,7 +17,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
 		res.json({
 			success: true,
-			data: products,
+			data: dummyProducts,
 			pagination: {
 				total,
 				page: Number(page),
@@ -107,7 +107,7 @@ export const createProduct = async (req: Request, res: Response) => {
 
 		res.status(201).json({
 			success: true,
-			data: dummyProducts,
+			data: product,
 		});
 	} catch (error: any) {
 		res.status(500).json({ success: false, message: error.message });
