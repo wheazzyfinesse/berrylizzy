@@ -1,14 +1,14 @@
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { View, ActivityIndicator, TouchableOpacity, Text } from "react-native";
+import { TouchableOpacity, Text } from "react-native";
 import { COLORS } from "@/constants";
-import { dummyUser } from "@/constants/dummyData";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
+import { useUser } from "@clerk/expo";
 
 export default function AdminLayout() {
-	const { user } = { user: dummyUser };
-	const isLoaded = true;
+	const { user, isLoaded } = useUser();
+
 	const router = useRouter();
 
 	useEffect(() => {

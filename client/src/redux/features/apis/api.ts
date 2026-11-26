@@ -9,10 +9,15 @@ import * as SecureStore from "expo-secure-store";
 import { delay, mockDb } from "@/redux/lib/mockdb";
 import { dummyOrders } from "@/constants/dummyData";
 import { getClerkInstance } from "@clerk/expo";
+import { Platform } from "react-native";
 
 export const USE_DUMMY = false;
 // export const API_URL = "https://berrylizzy.vercel.app/api/";
-export const API_URL = process.env.EXPO_PUBLIC_API_URL;
+export const API_URL = Platform.select({
+	android: process.env.EXPO_PUBLIC_API_URL,
+	ios: process.env.EXPO_PUBLIC_API_URL,
+	default: process.env.DEFAULT_API_URL,
+});
 
 const realBaseQuery = fetchBaseQuery({
 	baseUrl: API_URL,
@@ -202,7 +207,7 @@ const baseQueryWithMock: BaseQueryFn<
 
 export const baseApi = createApi({
 	reducerPath: "api",
-	baseQuery: baseQueryWithMock,
+	baseQuery: realBaseQuery,
 	tagTypes: ["Product", "Order", "User", "Address", "Wishlist", "Cart"],
 	endpoints: () => ({}),
 });

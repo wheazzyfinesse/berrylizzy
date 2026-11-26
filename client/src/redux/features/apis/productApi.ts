@@ -1,7 +1,5 @@
-import { ProductApiResponse, Product } from "@/constants/types";
+import { Product, ID, ProductApiResponse } from "@/constants/types";
 import { baseApi } from "./api";
-
-export type ProductInput = Omit<Product, "_id" | "ratings" | "createdAt">;
 
 export type ProductFilters = {
 	category?: string;
@@ -10,7 +8,7 @@ export type ProductFilters = {
 	limit?: number;
 	page?: number;
 };
-export type UpdateProduct = { id: string; data: Partial<ProductInput> };
+export type UpdateProduct = { id: string; formData: FormData };
 
 export const productsApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
@@ -27,7 +25,7 @@ export const productsApi = baseApi.injectEndpoints({
 			providesTags: (result) =>
 				result
 					? [
-							...result.data.map((product) => ({
+							...result.products.map((product) => ({
 								type: "Product" as const,
 								id: product._id,
 							})),
@@ -35,21 +33,21 @@ export const productsApi = baseApi.injectEndpoints({
 						]
 					: ["Product"],
 		}),
-		getProduct: builder.query<ProductApiResponse, string>({
+		getProduct: builder.query<Product, ID>({
 			query: (id) => `/products/${id}`,
 			providesTags: (r, e, id) => [{ type: "Product", id }],
 		}),
 
 		// MUTATIONS
-		createProduct: builder.mutation<ProductApiResponse, ProductInput>({
+		createProduct: builder.mutation<Product, FormData>({
 			query: (body) => ({ url: "/products", method: "POST", body }),
 			invalidatesTags: ["Product"],
 		}),
 		updateProduct: builder.mutation<Product, UpdateProduct>({
-			query: ({ id, data }) => ({
+			query: ({ id, formData }) => ({
 				url: `/products/${id}`,
-				method: "PATCH",
-				body: data,
+				method: "PUT",
+				body: formData,
 			}),
 			invalidatesTags: (r, e, { id }) => [{ type: "Product", id }, "Product"],
 		}),

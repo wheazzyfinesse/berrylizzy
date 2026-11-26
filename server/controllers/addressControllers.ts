@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import mongoose, { Types } from "mongoose";
 import Address from "../models/addressses.js";
-import { dummyAddress } from "../utils/dummyData.js";
 
 const validTypes = ["Home", "Work", "Other"] as const;
 
@@ -26,23 +25,18 @@ const hasRequiredAddressFields = (data: ReturnType<typeof getAddressInput>) =>
 
 export const getAddresses = async (req: Request, res: Response) => {
 	const userId = req.user?._id;
-	console.log(userId);
 	if (!userId) {
-		return res.status(401).json({ message: "Unauthorized" });
+		return res.status(401).json("Unauthorized");
 	}
 	try {
 		const addresses = await Address.find({ user: userId }).sort({
 			isDefault: -1,
 			createdAt: -1,
 		});
-
-		res.status(201).json({
-			success: true,
-			data: addresses,
-		});
+		res.status(201).json(addresses);
 	} catch (error: any) {
 		console.error(error);
-		res.status(500).json({ success: false, message: error.message });
+		res.status(500).json(error.message);
 	}
 };
 
@@ -54,7 +48,7 @@ export const getAddressById = async (req: Request, res: Response) => {
 
 		const id = req.params.id;
 		if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid address ID" });
+			return res.status(400).json("Invalid address ID");
 		}
 
 		const address = await Address.findOne({
@@ -63,21 +57,20 @@ export const getAddressById = async (req: Request, res: Response) => {
 		});
 
 		if (!address) {
-			return res.status(404).json({ message: "Address not found" });
+			return res.status(404).json("Address not found");
 		}
 
 		return res.status(200).json(address);
 	} catch (error) {
 		console.error(error);
-		return res.status(500).json({ message: "Could not get address" });
+		return res.status(500).json("Could not get address");
 	}
 };
 
 export const addAddress = async (req: Request, res: Response) => {
 	if (!req.user) {
-		return res.status(401).json({ message: "Unauthorized" });
+		return res.status(401).json("Unauthorized");
 	}
-	console.log("first");
 
 	const data = getAddressInput(req.body);
 
@@ -88,7 +81,7 @@ export const addAddress = async (req: Request, res: Response) => {
 	}
 
 	if (data.isDefault !== undefined && typeof data.isDefault !== "boolean") {
-		return res.status(400).json({ message: "isDefault must be a boolean" });
+		return res.status(400).json("isDefault must be a boolean");
 	}
 
 	const session = await mongoose.startSession();
@@ -123,13 +116,11 @@ export const addAddress = async (req: Request, res: Response) => {
 		if (!createdAddress) {
 			throw new Error("Address was not created");
 		}
-		console.log("done!");
-		return res.status(201).json({ success: true, data: createdAddress });
+
+		return res.status(201).json(createdAddress);
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not create address" });
+		return res.status(500).json("Could not create address");
 	} finally {
 		await session.endSession();
 	}
@@ -137,18 +128,18 @@ export const addAddress = async (req: Request, res: Response) => {
 
 export const updateAddress = async (req: Request, res: Response) => {
 	if (!req.user) {
-		return res.status(401).json({ message: "Unauthorized" });
+		return res.status(401).json("Unauthorized");
 	}
 
 	const id = req.params.id;
 	if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-		return res.status(400).json({ message: "Invalid address ID" });
+		return res.status(400).json("Invalid address ID");
 	}
 
 	const body = req.body ?? {};
 
 	if (body.type !== undefined && !validTypes.includes(body.type)) {
-		return res.status(400).json({ message: "Invalid address type" });
+		return res.status(400).json("Invalid address type");
 	}
 
 	for (const field of [
@@ -163,14 +154,12 @@ export const updateAddress = async (req: Request, res: Response) => {
 			body[field] !== undefined &&
 			(typeof body[field] !== "string" || body[field].trim().length === 0)
 		) {
-			return res
-				.status(400)
-				.json({ message: `${field} must be a non-empty string` });
+			return res.status(400).json(`${field} must be a non-empty string`);
 		}
 	}
 
 	if (body.isDefault !== undefined && typeof body.isDefault !== "boolean") {
-		return res.status(400).json({ message: "isDefault must be a boolean" });
+		return res.status(400).json("isDefault must be a boolean");
 	}
 
 	const session = await mongoose.startSession();
@@ -217,7 +206,7 @@ export const updateAddress = async (req: Request, res: Response) => {
 		});
 
 		if (addressNotFound) {
-			return res.status(404).json({ message: "Address not found" });
+			return res.status(404).json("Address not found");
 		}
 
 		if (!updatedAddress) {
@@ -227,7 +216,7 @@ export const updateAddress = async (req: Request, res: Response) => {
 		return res.status(200).json(updatedAddress);
 	} catch (error) {
 		console.error(error);
-		return res.status(500).json({ message: "Could not update address" });
+		return res.status(500).json("Could not update address");
 	} finally {
 		await session.endSession();
 	}
@@ -235,12 +224,12 @@ export const updateAddress = async (req: Request, res: Response) => {
 
 export const deleteAddress = async (req: Request, res: Response) => {
 	if (!req.user) {
-		return res.status(401).json({ message: "Unauthorized" });
+		return res.status(401).json("Unauthorized");
 	}
 
 	const id = req.params.id;
 	if (typeof id !== "string" || !Types.ObjectId.isValid(id)) {
-		return res.status(400).json({ message: "Invalid address ID" });
+		return res.status(400).json("Invalid address ID");
 	}
 
 	const session = await mongoose.startSession();
@@ -276,13 +265,13 @@ export const deleteAddress = async (req: Request, res: Response) => {
 		});
 
 		if (addressNotFound) {
-			return res.status(404).json({ message: "Address not found" });
+			return res.status(404).json("Address not found");
 		}
 
-		return res.status(200).json({ success: true });
+		return res.status(200).json(true);
 	} catch (error) {
 		console.error(error);
-		return res.status(500).json({ message: "Could not delete address" });
+		return res.status(500).json("Could not delete address");
 	} finally {
 		await session.endSession();
 	}

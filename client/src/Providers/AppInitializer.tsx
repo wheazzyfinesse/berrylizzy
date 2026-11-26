@@ -35,11 +35,13 @@ const AppInitializer = ({ children }: Props) => {
 				}
 
 				const user = await authService.restoreSession(getToken);
-				console.log("first");
-				if (user) dispatch(setUser(user));
-				else dispatch(logout());
+
+				if (user) {
+					dispatch(setUser(user));
+				} else dispatch(logout());
 			} catch (error) {
-				console.error("App initialization failed:", error);
+				console.warn("App initialization failed:", error);
+				return null;
 			} finally {
 				setInitialized(true);
 			}

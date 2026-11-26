@@ -1,6 +1,5 @@
 import * as SecureStore from "expo-secure-store";
 import { API_URL, USE_DUMMY } from "../apis/api";
-import { useAuth } from "@clerk/expo";
 
 const TOKEN_KEY = "access_token";
 
@@ -21,12 +20,12 @@ export const authService = {
 		if (USE_DUMMY) return null;
 
 		const token = await getToken();
-		if (!token) return null;
-
+		if (!token) {
+			return null;
+		}
 		const response = await fetch(`${API_URL}/auth/me`, {
 			headers: { Authorization: `Bearer ${token}` },
 		});
-
 		if (response.status === 401 || response.status === 403) return null;
 		if (!response.ok) {
 			throw new Error(`Session check failed: ${response.status}`);

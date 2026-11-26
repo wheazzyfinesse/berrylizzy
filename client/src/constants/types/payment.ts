@@ -44,9 +44,9 @@ export const paymentMethod = [
 		icon: "cash-outline",
 	},
 	{
-		id: "stripe",
+		id: "paystack",
 		title: "Card Payment",
-		description: "Pay securely using Stripe.",
+		description: "Pay securely using Paystack.",
 		icon: "card-outline",
 	},
 ];

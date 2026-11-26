@@ -14,48 +14,51 @@ import { COLORS } from "@/constants";
 import { dummyProducts } from "@/constants/dummyData";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
+import {
+	useDeleteProductMutation,
+	useGetProductsQuery,
+} from "@/redux/features/apis/productApi";
+import { ID } from "@/constants/types";
+import Toast from "react-native-toast-message";
 
 export default function AdminProducts() {
 	const router = useRouter();
-	const [loading, setLoading] = useState(true);
+	const { data, isLoading, error, refetch } = useGetProductsQuery();
+	const [deleteProduct] = useDeleteProductMutation();
+	const products = data?.products;
 	const [refreshing, setRefreshing] = useState(false);
-	const [products, setProducts] = useState([]);
-
-	const fetchProducts = async () => {
-		setProducts(dummyProducts as any);
-		setLoading(false);
-		setRefreshing(false);
-	};
-
-	useEffect(() => {
-		fetchProducts();
-	}, []);
 
 	const onRefresh = () => {
 		setRefreshing(true);
-		fetchProducts();
+		refetch();
 	};
-
-	const performDelete = async (id: string) => {
-		setProducts(products.filter((product: any) => product._id !== id) as any);
-	};
-
-	const deleteProduct = async (id: string) => {
-		Alert.alert(
-			"Delete Product",
-			"Are you sure you want to delete this product?",
-			[
-				{ text: "Cancel", style: "cancel" as const },
-				{
-					text: "Delete",
-					style: "destructive" as const,
-					onPress: () => performDelete(id),
+	const handleDelete = (id: ID) => {
+		Alert.alert("Delete product?", "This product will be removed.", [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: "Delete",
+				style: "destructive",
+				onPress: async () => {
+					try {
+						await deleteProduct(id).unwrap();
+						Toast.show({
+							type: "success",
+							text1: "success",
+							text2: "Product deleted successfully!",
+						});
+					} catch (error: any) {
+						Toast.show({
+							type: "error",
+							text1: "Could not delete product",
+							text2: error?.data?.message ?? "Please try again.",
+						});
+					}
 				},
-			],
-		);
+			},
+		]);
 	};
 
-	if (loading && !refreshing) {
+	if (isLoading && !refreshing) {
 		return <Loading />;
 	}
 
@@ -63,7 +66,7 @@ export default function AdminProducts() {
 		<View className="flex-1 bg-surface">
 			<View className="p-4 bg-white border border-gray-100 flex-row justify-between items-center">
 				<Text className="text-lg font-semibold text-primary">
-					Total Products ({products.length})
+					Total Products ({products?.length})
 				</Text>
 				<TouchableOpacity
 					onPress={() => router.push("/admin/products/add")}
@@ -80,12 +83,12 @@ export default function AdminProducts() {
 					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 				}
 			>
-				{products.length === 0 ? (
+				{products?.length === 0 ? (
 					<View className="flex-1 justify-center items-center mt-20">
 						<Text className="text-secondary">No products found</Text>
 					</View>
 				) : (
-					products.map((product: any) => (
+					products?.map((product: any) => (
 						<View
 							key={product._id}
 							className="bg-white p-3 rounded-lg border border-gray-100 mb-3 flex-row items-center"
@@ -124,15 +127,13 @@ export default function AdminProducts() {
 
 							<View className="flex-row items-center">
 								<TouchableOpacity
-									onPress={() =>
-										router.push(`/admin/products/edit/${product._id}`)
-									}
+									onPress={() => router.push(`/admin/products/${product._id}`)}
 									className="p-2 bg-slate-50 rounded-full mr-2"
 								>
 									<Ionicons name="create-outline" size={18} color="#333333" />
 								</TouchableOpacity>
 								<TouchableOpacity
-									onPress={() => deleteProduct(product._id)}
+									onPress={() => handleDelete(product._id)}
 									className="p-2 bg-gray-50 rounded-full"
 								>
 									<Ionicons name="trash-outline" size={18} color="#333333" />

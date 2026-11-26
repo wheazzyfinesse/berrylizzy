@@ -48,7 +48,7 @@ export interface IProduct extends Document {
 	price: number;
 	comparePrice?: number;
 	images: string[];
-	sizes: string[];
+	sizes: "S" | "M" | "L" | "XL" | "XXL";
 	category: "Men" | "Women" | "Kids" | "Shoes" | "Bags" | "Other";
 	stock: number;
 	ratings: {
@@ -75,4 +75,10 @@ export interface IWishlist extends Document {
 	user: Types.ObjectId;
 	products: Types.ObjectId[];
 	createdAt: Date;
+}
+export interface CreateOrder {
+	pendingOrderItems: IOrderItem[];
+	shippingAddress: IAddress;
+	paymentMethod: "cash" | "stripe";
+	notes?: string;
 }

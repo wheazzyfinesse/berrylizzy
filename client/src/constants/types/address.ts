@@ -18,8 +18,3 @@ export type AddAddressRequest = Omit<
 >;
 
 export type UpdateAddressInput = Partial<AddAddressRequest>;
-
-export interface AddressApiResponse {
-	sucess: boolean;
-	data: Address[];
-}

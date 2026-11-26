@@ -1,5 +1,5 @@
 import "dotenv/config";
-import express, { type Request, type Response } from "express";
+import express from "express";
 import cors from "cors";
 import { connectToMongoDB } from "./utils/mongodb.js";
 import { clerkMiddleware } from "@clerk/express";
@@ -12,9 +12,7 @@ import AddressRouter from "./routes/addressRoutes.js";
 import { getMe, protect } from "./middleware/auth.js";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const publishableKey = process.env.CLERK_PBLISHABLE_KEY;
-const secretKey = process.env.CLERK_SECRET_KEY;
+const PORT = process.env.PORT || 5000;
 
 // Connect to Database
 await connectToMongoDB();
@@ -22,7 +20,7 @@ await connectToMongoDB();
 app.post("/api/clerk", express.raw({ type: "application/json" }), clerkWebhook);
 
 // Middleware
-app.use(clerkMiddleware({ publishableKey, secretKey }));
+app.use(clerkMiddleware());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -38,7 +36,7 @@ app.use("/api/orders", OrderRouter);
 app.use("/api/addresses", AddressRouter);
 
 // Auth Route
-app.use("/api/auth/me", protect, getMe);
+app.get("/api/auth/me", protect, getMe);
 
 app.get("/api/cron/release-expired-orders", async (req, res) => {
 	const cronSecret = process.env.CRON_SECRET;

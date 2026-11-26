@@ -36,7 +36,7 @@ export const ShippingAddressSchema = new Schema({
 		default: "",
 		required: true,
 	},
-	address: {
+	street: {
 		default: "",
 		type: String,
 		required: true,
@@ -75,6 +75,10 @@ const OrderSchema = new Schema(
 			ref: "User",
 			required: true,
 		},
+		orderNumber: {
+			type: String,
+			required: true,
+		},
 		orderItems: [OrderItemSchema],
 		shippingAddress: ShippingAddressSchema,
 		paymentStatus: {
@@ -91,7 +95,7 @@ const OrderSchema = new Schema(
 			type: String,
 			unique: true,
 			sparse: true,
-			default: null,
+			default: undefined,
 		},
 		orderStatus: {
 			type: String,

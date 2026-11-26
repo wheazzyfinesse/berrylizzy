@@ -24,32 +24,31 @@ const Shop = () => {
 	const [products, setProducts] = useState<Product[]>([]);
 	const [hasMore, setHasMore] = useState(true);
 
-	const {
-		data: response,
-		isLoading,
-		isFetching,
-		isError,
-		refetch,
-	} = useGetProductsQuery({
-		page,
-		limit: 10,
-	});
-	const data = response?.data;
+	const { data, isLoading, isFetching, isError, refetch } = useGetProductsQuery(
+		{
+			page,
+			limit: 10,
+		},
+	);
+	const productData = data?.products;
 	useEffect(() => {
-		if (!data) return;
+		if (!productData) return;
 
 		if (page === 1) {
-			setProducts(data);
+			setProducts(productData);
 		} else {
 			setProducts((previous) => {
 				const existingIds = new Set(previous.map((p) => p._id));
 
-				return [...previous, ...data.filter((p) => !existingIds.has(p._id))];
+				return [
+					...previous,
+					...productData.filter((p) => !existingIds.has(p._id)),
+				];
 			});
 		}
 
-		setHasMore(data.length === 10);
-	}, [data, page]);
+		setHasMore(productData.length === 10);
+	}, [productData, page]);
 
 	const loadMore = () => {
 		if (!isFetching && hasMore) {

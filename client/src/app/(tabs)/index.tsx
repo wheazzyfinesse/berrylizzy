@@ -24,8 +24,7 @@ const Home = () => {
 	const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 	const categories = [{ id: "all", name: "All", icon: "grid" }, ...CATEGORIES];
 	const { data, isLoading, error, refetch } = useGetProductsQuery();
-
-	const products = data?.data;
+	const products = data?.products;
 
 	return (
 		<SafeAreaView className="flex-1" edges={["top"]}>

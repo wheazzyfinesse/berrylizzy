@@ -1,34 +1,33 @@
 import type {
 	AddAddressRequest,
 	Address,
-	AddressApiResponse,
-	ApiResponse,
+	ID,
 	UpdateAddressInput,
 } from "@/constants/types";
 import { baseApi } from "./api";
 
 export const addressApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
-		getAddresses: builder.query<AddressApiResponse, void>({
+		getAddresses: builder.query<Address[], void>({
 			query: () => "/addresses",
-			providesTags: (r) =>
-				r
+			providesTags: (result) =>
+				result
 					? [
-							...r.data.map((a) => ({ type: "Address" as const, id: a._id })),
+							...result.map((a) => ({ type: "Address" as const, id: a._id })),
 							"Address",
 						]
 					: ["Address"],
 		}),
-		getAddressById: builder.query<ApiResponse, string>({
+		getAddressById: builder.query<Address, ID>({
 			query: (id) => `/addresses/${id}`,
 			providesTags: (r, e, id) => [{ type: "Address", id }],
 		}),
-		addAddress: builder.mutation<ApiResponse, AddAddressRequest>({
+		addAddress: builder.mutation<Address, AddAddressRequest>({
 			query: (body) => ({ url: "/addresses", method: "POST", body }),
 			invalidatesTags: ["Address"],
 		}),
 		updateAddress: builder.mutation<
-			ApiResponse,
+			Address,
 			{ id: string; data: UpdateAddressInput }
 		>({
 			query: ({ id, data }) => ({
@@ -38,7 +37,7 @@ export const addressApi = baseApi.injectEndpoints({
 			}),
 			invalidatesTags: ["Address"],
 		}),
-		setDefaultAddress: builder.mutation<ApiResponse, string>({
+		setDefaultAddress: builder.mutation<Address, ID>({
 			query: (id) => ({
 				url: `/addresses/${id}`,
 				method: "PATCH",
@@ -46,7 +45,7 @@ export const addressApi = baseApi.injectEndpoints({
 			}),
 			invalidatesTags: ["Address"],
 		}),
-		deleteAddress: builder.mutation<{ success: boolean }, string>({
+		deleteAddress: builder.mutation<{ success: boolean }, ID>({
 			query: (id) => ({ url: `/addresses/${id}`, method: "DELETE" }),
 			invalidatesTags: ["Address"],
 		}),

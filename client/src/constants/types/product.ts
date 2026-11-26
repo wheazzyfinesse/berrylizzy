@@ -1,5 +1,11 @@
 import { Category } from "./category";
-import type { BaseEntity, ID, PaginationParams, Rating } from "./common";
+import type {
+	BaseEntity,
+	ID,
+	PaginationParams,
+	Rating,
+	SizeOption,
+} from "./common";
 
 export interface Product extends BaseEntity {
 	name: string;
@@ -7,7 +13,7 @@ export interface Product extends BaseEntity {
 	price: number;
 	comparePrice?: number;
 	images: string[];
-	sizes: string[];
+	sizes: SizeOption;
 	category: Category | ID;
 	stock: number;
 	ratings: Rating;
@@ -29,6 +35,10 @@ export interface ProductCardProps {
 	product: Product;
 }
 export interface ProductApiResponse {
-	sucess: boolean;
-	data: Product[];
+	products: Product[];
+	pagination: {
+		total: number;
+		page: number;
+		pages: number;
+	};
 }

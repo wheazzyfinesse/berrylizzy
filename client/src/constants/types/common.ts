@@ -1,15 +1,16 @@
-import { Address } from "./address";
-import { Order } from "./order";
-import { Product } from "./product";
-
 export type ID = string;
+
 export type ISODateString = string;
+
+export const SIZE_OPTIONS = ["S", "M", "L", "XL", "XXL"] as const;
+
+export type SizeOption = (typeof SIZE_OPTIONS)[number];
 
 export type AddressType = "Home" | "Office" | "Work" | "Other";
 
 export type UserRole = "user" | "admin";
 
-export type PaymentMethod = "cash" | "paystack" | "stripe";
+export type PaymentMethod = "cash" | "paystack";
 
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
@@ -48,8 +49,3 @@ export type HeaderProps = {
 	showMenu?: boolean;
 	showLogo?: boolean;
 };
-export interface ApiResponse {
-	sucess: boolean;
-	data: Product | Order | Address;
-	message?: string;
-}

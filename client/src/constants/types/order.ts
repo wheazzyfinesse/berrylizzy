@@ -1,4 +1,4 @@
-import { Product } from ".";
+import { Address, Product } from ".";
 import type {
 	BaseEntity,
 	ID,
@@ -7,12 +7,9 @@ import type {
 	PaymentStatus,
 } from "./common";
 
-export interface OrderShippingAddress {
-	street: string;
-	city: string;
-	state: string;
-	zipCode: string;
-	country: string;
+export interface OrderShippingAddress extends Address {
+	firstName: string;
+	lastName: string;
 }
 
 export interface OrderItem {
@@ -38,17 +35,13 @@ export interface Order extends BaseEntity {
 	deliveredAt?: string;
 }
 export type CreatePendingOrderResponse = {
-	success: boolean;
-	data: {
-		order: Order;
-		authorizationUrl: string;
-		reference: string;
-	};
-	message?: string;
+	order: Order;
+	authorization_url: string;
+	reference: string;
 };
 
 export interface CreateOrderRequest {
-	orderItems: OrderItem[];
+	pendingOrderItems: OrderItem[];
 	shippingAddress: OrderShippingAddress;
 	paymentMethod: PaymentMethod;
 	notes?: string;

@@ -2,41 +2,49 @@ import {
 	Order,
 	CreateOrderRequest,
 	CreatePendingOrderResponse,
-	ApiResponse,
 } from "@/constants/types";
 import { baseApi } from "./api";
 
 export const ordersApi = baseApi.injectEndpoints({
 	endpoints: (builder) => ({
-		getOrders: builder.query<ApiResponse, void>({
+		getOrders: builder.query<Order[], void>({
 			query: () => "/orders",
-			providesTags: (r) =>
-				r
+			providesTags: (result) =>
+				result
 					? [
-							...r.data.map((o) => ({ type: "Order" as const, id: o._id })),
+							...result.map((order) => ({
+								type: "Order" as const,
+								id: order._id,
+							})),
 							"Order",
 						]
 					: ["Order"],
 		}),
-		getMyOrder: builder.query<ApiResponse, void>({
+		getMyOrder: builder.query<Order[], void>({
 			query: () => "/orders/mine",
-			providesTags: (r) =>
-				r
+			providesTags: (result) =>
+				result
 					? [
-							...r.data.map((o) => ({ type: "Order" as const, id: o._id })),
+							...result.map((order) => ({
+								type: "Order" as const,
+								id: order._id,
+							})),
 							"Order",
 						]
 					: ["Order"],
 		}),
 		getOrder: builder.query<Order, string>({
 			query: (id) => `/orders/${id}`,
-			providesTags: (r, e, id) => [{ type: "Order", id }],
+			providesTags: (result, error, id) => [{ type: "Order", id }],
 		}),
-		createPendingOrder: builder.mutation<ApiResponse, CreateOrderRequest>({
+		createPendingOrder: builder.mutation<
+			CreatePendingOrderResponse,
+			CreateOrderRequest
+		>({
 			query: (body) => ({ url: "/orders", method: "POST", body }),
 			invalidatesTags: ["Order", "Cart"],
 		}),
-		verifyPaystackPayment: builder.mutation<ApiResponse, any>({
+		verifyPaystackPayment: builder.mutation<Order, any>({
 			query: (body) => ({
 				url: "/orders/paystack/verify",
 				method: "POST",

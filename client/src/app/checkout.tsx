@@ -1,18 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
 	View,
 	Text,
 	ScrollView,
 	TouchableOpacity,
 	TextInput,
+	ActivityIndicator,
+	Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import Ionicons from "@react-native-vector-icons/ionicons";
-
 import Header from "@/components/Header";
 import Loading from "@/components/Loading";
-
+import * as WebBrowser from "expo-web-browser";
 import {
 	selectCheckout,
 	setStep,
@@ -34,22 +35,32 @@ import {
 
 import { useGetAddressesQuery } from "@/redux/features/apis/addressApi";
 
-import {
-	useCreatePendingOrderMutation,
-	useVerifyPaystackPaymentMutation,
-} from "@/redux/features/apis/orderApi";
+import { useCreatePendingOrderMutation } from "@/redux/features/apis/orderApi";
 import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { COLORS } from "@/constants";
-import { CHECKOUT_STEPS, CheckoutStep, paymentMethod } from "@/constants/types";
+import {
+	CHECKOUT_STEPS,
+	CheckoutStep,
+	PaymentMethod,
+	paymentMethod,
+} from "@/constants/types";
 import Toast from "react-native-toast-message";
-import { delay } from "@/redux/lib/mockdb";
+import { useUser } from "@clerk/expo";
 
 const SHIPPING_COST = 2;
-const TAX = 0.5;
+const TAX = 0.2;
+
+import { skipToken } from "@reduxjs/toolkit/query";
+import { useGetOrderQuery } from "@/redux/features/apis/orderApi";
 
 const Checkout = () => {
 	const dispatch = useAppDispatch();
 	const router = useRouter();
+	const { user, isSignedIn } = useUser();
+
+	const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+	const [receiverFirstName, setReceiverFirstName] = useState("");
+	const [receiverLastName, setReceiverLastName] = useState("");
 
 	const checkout = useAppSelector(selectCheckout);
 	const cartItems = useAppSelector(selectCartItems);
@@ -67,12 +78,27 @@ const Checkout = () => {
 
 	const [createPendingOrder, { isLoading: orderLoading }] =
 		useCreatePendingOrderMutation();
-	const [verifyPaystackPayment, { isLoading: PaymentLoading }] =
-		useVerifyPaystackPaymentMutation();
+
+	const { data: pendingOrder } = useGetOrderQuery(pendingOrderId ?? skipToken, {
+		pollingInterval: pendingOrderId ? 3000 : 0,
+	});
 
 	const selectedAddress = addresses.find(
 		(address) => address._id === checkout.selectedAddressId,
 	);
+	useEffect(() => {
+		if (pendingOrder?.paymentStatus !== "paid") return;
+
+		setPendingOrderId(null);
+		dispatch(clearCart());
+		dispatch(resetCheckout());
+		Toast.show({
+			type: "success",
+			text1: "Payment confirmed",
+			text2: "Your order has been placed successfully.",
+		});
+		router.replace("/orders");
+	}, [pendingOrder?.paymentStatus, dispatch, router]);
 
 	// Select the default address when addresses are loaded.
 	useEffect(() => {
@@ -93,7 +119,45 @@ const Checkout = () => {
 			});
 			return;
 		}
+		if (checkout.step === 2) {
+			const nameParts = user?.fullName?.trim().split(/\s+/) ?? [];
 
+			if (!receiverFirstName.trim() || !receiverLastName.trim()) {
+				const defaultFirstName =
+					user?.firstName?.trim() || (nameParts[0] ?? "");
+				const defaultLastName =
+					user?.lastName?.trim() || nameParts.slice(1).join(" ");
+
+				if (!defaultFirstName || !defaultLastName) {
+					Toast.show({
+						type: "error",
+						text1: "Receiver name required",
+						text2: "Please enter the receiver’s first and last name.",
+					});
+					return;
+				}
+
+				Alert.alert(
+					"Receiver name missing",
+					`Use your name (${defaultFirstName} ${defaultLastName}) for this order?`,
+					[
+						{ text: "Go back", style: "cancel" },
+						{
+							text: "Use my name",
+							onPress: () => {
+								setReceiverFirstName(defaultFirstName);
+								setReceiverLastName(defaultLastName);
+								dispatch(setStep(3)); // Continue to the next checkout step
+							},
+						},
+					],
+				);
+				return;
+			}
+
+			dispatch(setStep(3));
+			return;
+		}
 		if (checkout.step === 3) {
 			handlePlaceOrder();
 			return;
@@ -113,6 +177,38 @@ const Checkout = () => {
 			return;
 		}
 
+		if (!receiverFirstName.trim() || !receiverLastName.trim()) {
+			const nameParts = user?.fullName?.trim().split(/\s+/) ?? [];
+			const defaultFirstName = user?.firstName?.trim() || (nameParts[0] ?? "");
+			const defaultLastName =
+				user?.lastName?.trim() || nameParts.slice(1).join(" ");
+
+			if (!defaultFirstName || !defaultLastName) {
+				Toast.show({
+					type: "error",
+					text1: "Receiver name required",
+					text2: "Please enter the receiver’s first and last name.",
+				});
+				return;
+			}
+
+			Alert.alert(
+				"Receiver name missing",
+				`Use your name (${defaultFirstName} ${defaultLastName}) for this order?`,
+				[
+					{ text: "Go back", style: "cancel" },
+					{
+						text: "Use my name",
+						onPress: () => {
+							setReceiverFirstName(defaultFirstName);
+							setReceiverLastName(defaultLastName);
+							dispatch(setStep(3)); // Continue to the next checkout step
+						},
+					},
+				],
+			);
+			return;
+		}
 		if (cartItems.length === 0) {
 			Toast.show({
 				type: "error",
@@ -126,49 +222,53 @@ const Checkout = () => {
 		try {
 			dispatch(setPlacingOrder(true));
 
-			const orderPayload = {
-				orderItems: cartItems.map((item) => ({
+			const shippingAddress = {
+				...selectedAddress,
+				firstName: receiverFirstName.trim(),
+				lastName: receiverLastName.trim(),
+			};
+
+			const pendingOrderPayload = {
+				pendingOrderItems: cartItems.map((item) => ({
 					productId: item.product._id,
 					size: item.size,
 					quantity: item.quantity,
 				})),
-				shippingAddress: selectedAddress,
+				shippingAddress,
 				paymentMethod: checkout.paymentMethod,
 				notes: checkout.notes,
 			};
-			const orderCheckout = await createPendingOrder(orderPayload).unwrap();
+			const orderCheckout =
+				await createPendingOrder(pendingOrderPayload).unwrap();
 
-			if (orderCheckout.success) {
-				const verified = await verifyPaystackPayment({
-					reference: orderCheckout.data?.reference,
-				}).unwrap();
+			if (orderCheckout.order.paymentMethod === "paystack") {
+				setPendingOrderId(String(orderCheckout.order._id));
 
-				if (verified.success) {
-					dispatch(clearCart());
-					dispatch(resetCheckout());
-					Toast.show({
-						type: "success",
-						text1: "Order placed",
-						text2: "Your order has been placed successfully.",
-					});
-					delay(2000);
-					router.replace("/orders");
-				}
+				await WebBrowser.openBrowserAsync(orderCheckout.authorization_url);
+				return;
 			}
+
+			dispatch(clearCart());
+			dispatch(resetCheckout());
+			Toast.show({
+				type: "success",
+				text1: "Payment by cash",
+				text2: "Your order has been placed successfully.",
+			});
+			router.replace("/orders");
 		} catch (error: any) {
 			console.log(error);
 			Toast.show({
 				type: "error",
 				text1: "Order failed",
-				text2:
-					error?.data?.message ||
-					"Unable to place your order. Please try again.",
+				text2: error?.data || "Unable to place your order. Please try again.",
 			});
 		} finally {
 			dispatch(setPlacingOrder(false));
 		}
 	};
 
+	if (!isSignedIn) return <Redirect href={"/sign-in"} />;
 	if (addressesLoading) {
 		return (
 			<SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
@@ -288,13 +388,17 @@ const Checkout = () => {
 														color={COLORS.accent}
 													/>
 
-													<Text className="font-bold text-primary ml-2">
+													{/* <Text className="font-bold text-primary ml-2">
 														{address.name}
-													</Text>
+													</Text> */}
 
-													{address.isDefault && (
+													{address.isDefault ? (
 														<Text className="text-xs text-accent ml-2">
 															Default
+														</Text>
+													) : (
+														<Text className="text-xs text-accent ml-2">
+															{address.type}
 														</Text>
 													)}
 												</View>
@@ -347,9 +451,36 @@ const Checkout = () => {
 							<Text className="text-xl font-bold text-primary mb-2">
 								Selected Delivery Address
 							</Text>
+							<View className="flex-row gap-4 mb-4">
+								<View className="flex-1">
+									<Text className="text-primary font-medium mb-2">
+										Receiver first name
+									</Text>
+									<TextInput
+										className="bg-surface p-4 rounded-xl text-primary"
+										value={receiverFirstName}
+										onChangeText={setReceiverFirstName}
+										placeholder="Receiver first name"
+									/>
+								</View>
+								<View className="flex-1">
+									<Text className="text-primary font-medium mb-2">
+										Receiver last name
+									</Text>
+									<TextInput
+										className="bg-surface p-4 rounded-xl text-primary"
+										value={receiverLastName}
+										onChangeText={setReceiverLastName}
+										placeholder="Receiver last name"
+									/>
+								</View>
+							</View>
+
 							<Text className="text-secondary font-bold mb-2">
-								Name:
-								<Text className="font-light"> {selectedAddress?.name}</Text>
+								Receiver's Name:
+								<Text className="font-light">
+									{receiverFirstName + " " + receiverLastName}
+								</Text>
 							</Text>
 							<Text className="text-secondary font-bold  mb-2">
 								Phone:
@@ -397,7 +528,7 @@ const Checkout = () => {
 								<TouchableOpacity
 									key={method.id}
 									onPress={() =>
-										dispatch(setPaymentMethod(method.id as "cash" | "stripe"))
+										dispatch(setPaymentMethod(method.id as PaymentMethod))
 									}
 									className="bg-white rounded-xl p-5 mb-3 border-2 flex-row items-center"
 									style={{
@@ -442,28 +573,50 @@ const Checkout = () => {
 						</Text>
 
 						{/* Delivery address */}
-						<View className="bg-white rounded-xl p-4 mb-4">
-							<Text className="font-bold text-primary mb-3">
+
+						<View className="bg-white mb-2 rounded-lg p-2">
+							{/* Selected Address */}
+							<Text className="text-xl font-bold text-primary mb-2">
 								Delivery Address
 							</Text>
 
-							<Text className="text-secondary">{selectedAddress?.name}</Text>
-							<Text className="text-secondary">{selectedAddress?.phone}</Text>
-							<Text className="text-secondary">{selectedAddress?.type}</Text>
-							<Text className="text-secondary">{selectedAddress?.street}</Text>
-							<Text className="text-secondary">
-								{selectedAddress?.city}, {selectedAddress?.zipCode}
+							<Text className="text-secondary font-bold mb-2">
+								Receiver's Name:
+								<Text className="font-light">
+									{receiverFirstName + " " + receiverLastName}
+								</Text>
 							</Text>
-							<Text className="text-secondary">{selectedAddress?.country}</Text>
-
+							<Text className="text-secondary font-bold  mb-2">
+								Phone:
+								<Text className="font-light"> {selectedAddress?.phone}</Text>
+							</Text>
+							<Text className="text-secondary font-bold  mb-2">
+								Type:
+								<Text className="font-light"> {selectedAddress?.type}</Text>
+							</Text>
+							<Text className="text-secondary font-bold  mb-2">
+								Street:
+								<Text className="font-light"> {selectedAddress?.street}</Text>
+							</Text>
+							<Text className="text-secondary font-bold  mb-2">
+								City:
+								<Text className="font-light"> {selectedAddress?.city}</Text>
+							</Text>
+							<Text className="text-secondary font-bold  mb-2">
+								Zipcode:
+								<Text className="font-light"> {selectedAddress?.zipCode}</Text>
+							</Text>
+							<Text className="text-secondary font-bold  mb-2">
+								Country:
+								<Text className="font-light"> {selectedAddress?.country}</Text>
+							</Text>
 							<TouchableOpacity
 								onPress={() => dispatch(setStep(1))}
-								className="mt-3"
+								className="mt-3 mb-2"
 							>
 								<Text className="text-accent font-bold">Change address</Text>
 							</TouchableOpacity>
 						</View>
-
 						{/* Payment */}
 						<View className="bg-white rounded-xl p-4 mb-4">
 							<Text className="font-bold text-primary mb-2">
@@ -588,7 +741,7 @@ const Checkout = () => {
 					}}
 				>
 					{orderLoading ? (
-						<Loading />
+						<ActivityIndicator color="white" />
 					) : (
 						<Text className="text-white font-bold">
 							{checkout.step === 3 ? "Place Order" : "Continue"}

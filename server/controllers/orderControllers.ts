@@ -3,15 +3,7 @@ import mongoose, { Types } from "mongoose";
 import Order from "../models/orders.js";
 import Product from "../models/products.js";
 import { initializePaystackCheckout } from "../utils/paystack.js";
-import type { IAddress, IOrder, IOrderItem } from "../types/index.js";
-
-type AuthRequest = Request & {
-	user?: {
-		_id: Types.ObjectId;
-		role: string;
-		email: string;
-	};
-};
+import type { IOrderItem } from "../types/index.js";
 
 type OrderItemInput = {
 	productId: string;
@@ -49,30 +41,26 @@ export async function getOrders(_req: Request, res: Response) {
 			.populate("user", "name email")
 			.sort({ createdAt: -1 });
 
-		return res.status(200).json({ success: true, data: orders });
+		return res.status(200).json(orders);
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not get orders" });
+		return res.status(500).json("Could not get orders");
 	}
 }
 
 // GET /api/orders/mine
 export async function getMyOrders(req: Request, res: Response) {
 	try {
-		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+		if (!req.user) return res.status(401).json("Unauthorized");
 
 		const orders = await Order.find({ user: req.user._id }).sort({
 			createdAt: -1,
 		});
 
-		return res.status(200).json({ success: true, data: orders });
+		return res.status(200).json(orders);
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not get your orders" });
+		return res.status(500).json("Could not get your orders");
 	}
 }
 
@@ -80,10 +68,10 @@ export async function getMyOrders(req: Request, res: Response) {
 export async function getOrder(req: Request, res: Response) {
 	const orderId = req.params.id;
 	try {
-		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+		if (!req.user) return res.status(401).json("Unauthorized");
 
 		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
-			return res.status(400).json({ message: "Invalid order ID" });
+			return res.status(400).json("Invalid order ID");
 		}
 
 		const order = await Order.findById(req.params.id).populate(
@@ -91,158 +79,120 @@ export async function getOrder(req: Request, res: Response) {
 			"name email",
 		);
 
-		if (!order) return res.status(404).json({ message: "Order not found" });
+		if (!order) return res.status(404).json("Order not found");
 
 		const ownerId = String((order.user as any)?._id ?? order.user);
 
 		if (ownerId !== String(req.user._id) && req.user.role !== "admin") {
-			return res.status(403).json({ message: "You cannot access this order" });
+			return res.status(403).json("You cannot access this order");
 		}
 
-		return res.status(200).json({ success: true, data: order });
+		return res.status(200).json(order);
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not get order" });
+		return res.status(500).json("Could not get order");
 	}
 }
 
 // POST /api/orders
 export async function createPendingOrder(req: Request, res: Response) {
 	const reserved: Array<{ productId: Types.ObjectId; quantity: number }> = [];
-	await releaseExpiredOrderReservations();
+	let order: InstanceType<typeof Order> | undefined;
+	const orderItems: IOrderItem[] = [];
+
 	try {
-		if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+		await releaseExpiredOrderReservations();
 
-		const {
-			pendingOrderItems,
-			shippingAddress,
-			notes,
-			paymentMethod,
-		}: {
-			pendingOrderItems: OrderItemInput[];
-			shippingAddress?: IAddress;
-			notes?: string;
-			paymentMethod: "cash" | "paystack";
-		} = req.body;
+		// Validate, sanitize, authenticate and protect
+		if (!req.user) return res.status(401).json("Unauthorized");
 
+		const { pendingOrderItems, shippingAddress, notes, paymentMethod } =
+			req.body;
 		if (!Array.isArray(pendingOrderItems) || pendingOrderItems.length === 0) {
-			return res.status(400).json({ message: "Cart is empty" });
+			return res.status(400).json("Cart is empty");
 		}
 
 		if (!shippingAddress) {
-			return res.status(400).json({ message: "Shipping address is required" });
+			return res.status(400).json("Shipping address is required");
 		}
-
 		if (!["cash", "paystack"].includes(paymentMethod)) {
-			return res.status(400).json({ message: "Invalid payment method" });
+			return res.status(400).json("Invalid payment method");
 		}
 
-		const orderItems: IOrderItem[] = [];
-
-		for (const item of pendingOrderItems) {
-			if (
-				!Types.ObjectId.isValid(item.productId) ||
-				!Number.isInteger(item.quantity) ||
-				item.quantity < 1 ||
-				typeof item.size !== "string"
-			) {
-				throw Object.assign(new Error("Invalid cart item"), {
-					statusCode: 400,
-				});
-			}
-
-			const productId = new Types.ObjectId(item.productId);
-			const product = await Product.findById(productId);
-
-			if (!product) {
-				throw Object.assign(new Error("Product not found"), {
-					statusCode: 404,
-				});
-			}
-
-			// Atomic reservation prevents concurrent checkouts overselling this item.
-			const orderReservation = await Product.updateOne(
-				{ _id: productId, stock: { $gte: item.quantity } },
-				{ $inc: { stock: -item.quantity } },
-			);
-
-			if (orderReservation.modifiedCount !== 1) {
-				throw Object.assign(
-					new Error(`Insufficient stock for ${product.name}`),
-					{ statusCode: 409 },
-				);
-			}
-
-			reserved.push({ productId, quantity: item.quantity });
-
-			orderItems.push({
-				product: productId,
-				name: product.name,
-				size: item.size,
-				price: product.price,
-				quantity: item.quantity,
-			});
-		}
-
-		const subtotal = orderItems.reduce(
-			(sum, item) => sum + item.price * item.quantity,
-			0,
-		);
-		const shippingCost = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
-		const tax = Math.round(subtotal * TAX_RATE);
-
-		// orderItems must already contain product IDs, DB prices, and validated quantities.
+		// Start mongoose session with transaction
 		const session = await mongoose.startSession();
-		let order: InstanceType<typeof Order> | undefined;
-
 		try {
 			await session.withTransaction(async () => {
 				for (const item of pendingOrderItems) {
-					const reserved = await Product.updateOne(
-						{
-							_id: item.productId,
-							stock: { $gte: item.quantity },
-						},
-						{ $inc: { stock: -item.quantity } },
-						{ session },
-					);
-
-					if (reserved.modifiedCount !== 1) {
-						throw Object.assign(new Error("Insufficient stock"), {
-							statusCode: 409,
+					if (
+						!Types.ObjectId.isValid(item.productId) ||
+						!Number.isInteger(item.quantity) ||
+						item.quantity < 1 ||
+						typeof item.size !== "string"
+					) {
+						throw Object.assign(new Error("Invalid order item"), {
+							statusCode: 400,
 						});
 					}
-				}
 
-				let createdOrder: InstanceType<typeof Order> | undefined;
+					const product = await Product.findById(item.productId);
 
-				await session.withTransaction(async () => {
-					if (!req.user)
-						return res.status(401).json({ message: "Unauthorized" });
+					if (!product) {
+						throw Object.assign(new Error("Product not found"), {
+							statusCode: 404,
+						});
+					}
 
 					// Reserve product stock here, using { session }.
+					// Atomic reservation prevents concurrent checkouts overselling this item.
+					const orderReservation = await Product.updateOne(
+						{ _id: item.productId, stock: { $gte: item.quantity } },
+						{ $inc: { stock: -item.quantity } },
+					);
 
-					const orderDoc = new Order({
-						user: req.user._id,
-						orderItems,
-						shippingAddress,
-						notes,
-						paymentMethod,
-						paymentStatus: "pending",
-						orderStatus: "placed",
-						subtotal,
-						shippingCost,
-						tax,
-						totalAmount: subtotal + shippingCost + tax,
-						stockReserved: true,
-						reservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
+					if (orderReservation.modifiedCount !== 1) {
+						throw Object.assign(
+							new Error(`Insufficient stock for ${product.name}`),
+							{ statusCode: 409 },
+						);
+					}
+
+					reserved.push({ productId: item.productId, quantity: item.quantity });
+
+					orderItems.push({
+						product: product._id,
+						name: product.name,
+						size: item.size,
+						price: product.price,
+						quantity: item.quantity,
 					});
+				}
 
-					await orderDoc.save({ session });
-					createdOrder = orderDoc;
+				const subtotal = orderItems.reduce(
+					(sum, item) => sum + item.price * item.quantity,
+					0,
+				);
+				const shippingCost = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+				const tax = Math.round(subtotal * TAX_RATE);
+
+				// orderItems must already contain product IDs, DB prices, and validated quantities.
+				// Before creating order
+				const orderDoc = new Order({
+					user: req.user._id,
+					orderItems,
+					shippingAddress,
+					notes,
+					paymentMethod,
+					paymentStatus: "pending",
+					orderStatus: "placed",
+					shippingCost,
+					orderNumber: `ORD-${Date.now()}`,
+					tax,
+					stockReserved: true,
+					reservationExpiresAt: new Date(Date.now() + 30 * 60 * 1000),
 				});
+
+				const createdOrder = await orderDoc.save({ session });
 
 				if (!createdOrder) {
 					throw new Error("Order was not created");
@@ -252,6 +202,7 @@ export async function createPendingOrder(req: Request, res: Response) {
 		} finally {
 			await session.endSession();
 		}
+
 		if (!order) {
 			throw new Error("Order was not created");
 		}
@@ -259,22 +210,18 @@ export async function createPendingOrder(req: Request, res: Response) {
 		// If initialization fails, release the reservation in a separate transaction.
 		if (paymentMethod === "paystack") {
 			try {
-				const checkout = await initializePaystackCheckout({
+				const paystackCheckout = await initializePaystackCheckout({
 					amountInNaira: order.totalAmount,
 					email: req.user.email,
 					orderId: String(order._id),
 				});
-
-				order.paymentReference = checkout.reference;
+				order.paymentReference = paystackCheckout.reference;
 				await order.save();
 
 				return res.status(201).json({
-					success: true,
-					data: {
-						order,
-						authorizationUrl: checkout.authorization_url,
-						reference: checkout.reference,
-					},
+					order,
+					authorization_url: paystackCheckout.authorization_url,
+					reference: paystackCheckout.reference,
 				});
 			} catch (error) {
 				order.paymentStatus = "failed";
@@ -284,12 +231,17 @@ export async function createPendingOrder(req: Request, res: Response) {
 			}
 		}
 
-		// Cash order is accepted; its reserved stock remains deducted.
+		// If payment is by cash, order is accepted;
+		// Its reserved stock remains deducted as placed order rather than merely a reserved order.
 		order.stockReserved = false;
 		order.reservationExpiresAt = null;
 		await order.save();
 
-		return res.status(201).json({ success: true, data: order });
+		return res.status(201).json({
+			order,
+			authorization_url: "",
+			reference: "",
+		});
 	} catch (error) {
 		// If order creation failed before the reservation was attached to an order,
 		// restore every stock quantity reserved so far.
@@ -309,77 +261,13 @@ export async function createPendingOrder(req: Request, res: Response) {
 				: 500;
 
 		console.error(error);
-		return res.status(statusCode).json({
-			success: false,
-			message:
+		return res
+			.status(statusCode)
+			.json(
 				statusCode === 500
 					? "Could not create order"
 					: (error as Error).message,
-		});
-	}
-}
-
-// Verify payment
-// POST /api/orders/paystack/verify
-export async function verifyPaystackOrder(req: Request, res: Response) {
-	try {
-		const { reference } = req.body;
-		if (typeof reference !== "string" || !reference) {
-			return res.status(400).json({ message: "Payment reference is required" });
-		}
-		if (!req.user) {
-			return res.status(400).json({ message: "Not authorized" });
-		}
-
-		const order = await Order.findOne({
-			user: req.user._id,
-			paymentReference: reference,
-			paymentMethod: "paystack",
-		});
-
-		if (!order) return res.status(404).json({ message: "Order not found" });
-
-		if (order.paymentStatus === "paid") {
-			return res.status(200).json({ success: true, data: order });
-		}
-
-		const secret = process.env.PAYSTACK_SECRET_KEY;
-		if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not configured");
-
-		const response = await fetch(
-			`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-			{ headers: { Authorization: `Bearer ${secret}` } },
-		);
-		const result: any = await response.json();
-		const transaction = result.data;
-
-		if (
-			!response.ok ||
-			!result.status ||
-			transaction?.status !== "success" ||
-			transaction.reference !== order.paymentReference ||
-			transaction.amount !== Math.round(order.totalAmount * 100) ||
-			transaction.currency !== "NGN" ||
-			transaction.metadata?.orderId !== String(order._id)
-		) {
-			return res.status(402).json({
-				success: false,
-				message: "Payment is not confirmed",
-			});
-		}
-
-		order.paymentStatus = "paid";
-		order.stockReserved = false;
-		order.reservationExpiresAt = null;
-		await order.save();
-
-		return res.status(200).json({ success: true, data: order });
-	} catch (error) {
-		console.error(error);
-		return res.status(500).json({
-			success: false,
-			message: "Could not verify payment",
-		});
+			);
 	}
 }
 
@@ -389,7 +277,7 @@ export async function updateOrder(req: Request, res: Response) {
 
 	try {
 		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
-			return res.status(400).json({ message: "Invalid order ID" });
+			return res.status(400).json("Invalid order ID");
 		}
 
 		const allowedStatuses = [
@@ -403,16 +291,16 @@ export async function updateOrder(req: Request, res: Response) {
 		const { orderStatus, notes } = req.body;
 
 		if (orderStatus !== undefined && !allowedStatuses.includes(orderStatus)) {
-			return res.status(400).json({ message: "Invalid order status" });
+			return res.status(400).json("Invalid order status");
 		}
 
 		const order = await Order.findById(req.params.id);
-		if (!order) return res.status(404).json({ message: "Order not found" });
+		if (!order) return res.status(404).json("Order not found");
 
 		if (orderStatus === "cancelled" && order.paymentStatus === "paid") {
-			return res.status(409).json({
-				message: "A paid order cannot be cancelled through this endpoint",
-			});
+			return res
+				.status(409)
+				.json("A paid order cannot be cancelled through this endpoint");
 		}
 
 		if (orderStatus !== undefined) order.orderStatus = orderStatus;
@@ -430,12 +318,10 @@ export async function updateOrder(req: Request, res: Response) {
 			await releaseStock(order);
 		}
 
-		return res.status(200).json({ success: true, data: order });
+		return res.status(200).json(order);
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not update order" });
+		return res.status(500).json("Could not update order");
 	}
 }
 
@@ -445,28 +331,23 @@ export async function deleteOrder(req: Request, res: Response) {
 
 	try {
 		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
-			return res.status(400).json({ message: "Invalid order ID" });
+			return res.status(400).json("Invalid order ID");
 		}
 
 		const order = await Order.findById(req.params.id);
 		if (!order) return res.status(404).json({ message: "Order not found" });
 
 		if (order.paymentStatus === "paid") {
-			return res.status(409).json({ message: "Paid orders cannot be deleted" });
+			return res.status(409).json("Paid orders cannot be deleted");
 		}
 
 		await releaseStock(order);
 		await order.deleteOne();
 
-		return res.status(200).json({
-			success: true,
-			message: "Order deleted",
-		});
+		return res.status(200).json("Order deleted");
 	} catch (error) {
 		console.error(error);
-		return res
-			.status(500)
-			.json({ success: false, message: "Could not delete order" });
+		return res.status(500).json("Could not delete order");
 	}
 }
 
@@ -499,25 +380,4 @@ export async function releaseExpiredOrderReservations() {
 			);
 		}
 	}
-}
-
-// Paystack callback
-export function paystackCallback(req: Request, res: Response) {
-	const reference =
-		typeof req.query.reference === "string"
-			? req.query.reference
-			: typeof req.query.trxref === "string"
-				? req.query.trxref
-				: null;
-
-	const appReturnUrl = process.env.PAYMENT_RETURN_URL;
-
-	if (!reference || !appReturnUrl) {
-		return res.status(400).send("Invalid payment callback");
-	}
-
-	const destination = new URL(appReturnUrl);
-	destination.searchParams.set("reference", reference);
-
-	return res.redirect(303, destination.toString());
 }

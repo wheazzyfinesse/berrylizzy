@@ -8,43 +8,34 @@ export const protect = async (
 	next: NextFunction,
 ) => {
 	try {
-		const getauth = req.auth();
-		console.log(req);
-		const { userId } = getAuth(req);
-		console.log(userId);
+		// const { userId } = getAuth(req);
+
+		const { userId }: any = req.auth();
+
 		if (!userId) {
-			return res.status(401).json({
-				success: false,
-				message: "Not authorized 1",
-			});
+			return res.status(401).json("Not authorized");
 		}
 
 		let user = await User.findOne({ clerkId: userId });
 
 		if (!user) {
-			return res.status(401).json({
-				success: false,
-				message: "User account not found",
-			});
+			return res.status(401).json("User account not found");
 		}
+
 		req.user = user;
 		next();
 	} catch (error) {
 		console.error("Auth error:", error);
-		res.status(500).json({
-			success: false,
-			message: "Authentication failed",
-		});
+		res.status(500).json("Authentication failed");
 	}
 };
 
 export const authorize = (...roles: string[]) => {
 	return (req: Request, res: Response, next: NextFunction) => {
 		if (!req.user || !roles.includes(req.user.role)) {
-			return res.status(403).json({
-				success: false,
-				message: "User role is not authorized to access this route",
-			});
+			return res
+				.status(403)
+				.json("User role is not authorized to access this route");
 		}
 		next();
 	};
@@ -54,7 +45,7 @@ export const authorize = (...roles: string[]) => {
 // GET /api/auth/me
 export const getMe = (req: Request, res: Response) => {
 	if (!req.user) {
-		return res.status(401).json({ message: "Not authorized from me" });
+		return res.status(401).json("Not authorized");
 	}
 
 	const user = req.user;

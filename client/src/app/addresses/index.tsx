@@ -27,8 +27,7 @@ import {
 
 export default function Addresses() {
 	const addressTypes: AddressType[] = ["Home", "Work", "Other"];
-	const { data, isLoading: loading } = useGetAddressesQuery();
-	const addresses = data?.data;
+	const { data: addresses, isLoading: addressLoading } = useGetAddressesQuery();
 
 	const [addAddress, { isLoading: isAdding }] = useAddAddressMutation();
 	const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation();
@@ -109,8 +108,18 @@ export default function Addresses() {
 		try {
 			if (isEditing && editingId) {
 				await updateAddress({ id: editingId, data }).unwrap();
+				Toast.show({
+					type: "success",
+					text1: "success",
+					text2: "Address updated successfully!",
+				});
 			} else {
-				const result = await addAddress(data).unwrap();
+				await addAddress(data).unwrap();
+				Toast.show({
+					type: "success",
+					text1: "success",
+					text2: "Address added successfully!",
+				});
 			}
 
 			setModalVisible(false);
@@ -146,8 +155,14 @@ export default function Addresses() {
 				onPress: async () => {
 					try {
 						await deleteAddress(id).unwrap();
+						Toast.show({
+							type: "success",
+							text1: "success",
+							text2: "Address deleted successfully!",
+						});
 					} catch (error: any) {
 						Toast.show({
+							type: "error",
 							text1: "Could not delete address",
 							text2: error?.data?.message ?? "Please try again.",
 						});
@@ -166,7 +181,7 @@ export default function Addresses() {
 		<SafeAreaView className="flex-1 bg-surface" edges={["top"]}>
 			<Header title="Shipping Addresses" showBack />
 
-			{loading ? (
+			{addressLoading ? (
 				<View className="flex-1 justify-center items-center">
 					<ActivityIndicator size="large" color={COLORS.primary} />
 				</View>

@@ -16,15 +16,13 @@ import {
 	getMyOrders,
 	getOrder,
 	getOrders,
-	paystackCallback,
 	updateOrder,
-	verifyPaystackOrder,
 } from "../controllers/orderControllers.js";
+import { paystackCallback } from "../utils/paystack.js";
 
 const OrderRouter = express.Router();
 
 // Static paths first, before "/:id"
-OrderRouter.post("/paystack/verify", protect, verifyPaystackOrder);
 OrderRouter.get("/paystack/callback", paystackCallback);
 OrderRouter.get("/mine", protect, getMyOrders);
 

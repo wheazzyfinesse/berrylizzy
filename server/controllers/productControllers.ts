@@ -1,7 +1,6 @@
 import { type Request, type Response } from "express";
 import Product from "../models/products.js";
 import cloudinary from "../utils/cloudinary.js";
-import { dummyProducts } from "../utils/dummyData.js";
 
 // Get All Products
 // GET /api/products
@@ -15,9 +14,8 @@ export const getProducts = async (req: Request, res: Response) => {
 			.skip((Number(page) - 1) * Number(limit))
 			.limit(Number(limit));
 
-		res.json({
-			success: true,
-			data: dummyProducts,
+		res.status(200).json({
+			products,
 			pagination: {
 				total,
 				page: Number(page),
@@ -25,7 +23,7 @@ export const getProducts = async (req: Request, res: Response) => {
 			},
 		});
 	} catch (error: any) {
-		res.status(500).json({ success: false, message: error.message });
+		res.status(500).json(error.message);
 	}
 };
 
@@ -35,16 +33,11 @@ export const getProduct = async (req: Request, res: Response) => {
 	try {
 		const product = await Product.findById(req.params.id);
 		if (!product) {
-			return res
-				.status(404)
-				.json({ success: false, message: "Product not found" });
+			return res.status(404).json("Product not found");
 		}
-		res.json({
-			success: true,
-			data: product,
-		});
+		res.json(product);
 	} catch (error: any) {
-		res.status(500).json({ success: false, message: error.message });
+		res.status(500).json(error.message);
 	}
 };
 
@@ -56,7 +49,6 @@ export const createProduct = async (req: Request, res: Response) => {
 
 		// Handle File Upload
 		const files = (req.files ?? []) as Express.Multer.File[];
-
 		const uploadPromises: Promise<string>[] = files.map(
 			(file) =>
 				new Promise<string>((resolve, reject) => {
@@ -99,18 +91,14 @@ export const createProduct = async (req: Request, res: Response) => {
 		};
 
 		if (images.length === 0) {
-			return res
-				.status(400)
-				.json({ success: false, message: "Please upload atleast one image" });
+			return res.status(400).json("Please upload atleast one image");
 		}
 		const product = await Product.create(productData);
 
-		res.status(201).json({
-			success: true,
-			data: product,
-		});
+		res.status(201).json(product);
 	} catch (error: any) {
-		res.status(500).json({ success: false, message: error.message });
+		console.log(error);
+		res.status(500).json(error.message);
 	}
 };
 
@@ -118,15 +106,8 @@ export const createProduct = async (req: Request, res: Response) => {
 // PUT /api/products/:id
 export const updateProduct = async (req: Request, res: Response) => {
 	try {
+		const updates = { ...req.body };
 		let images: string[] = [];
-
-		if (req.body.existingImages) {
-			if (Array.isArray(req.body.existingImages)) {
-				images = [...req.body.existingImages];
-			} else {
-				images = [...req.body.existingImages];
-			}
-		}
 
 		// Handle File Upload
 		const files = (req.files ?? []) as Express.Multer.File[];
@@ -151,61 +132,52 @@ export const updateProduct = async (req: Request, res: Response) => {
 
 		images = await Promise.all(uploadPromises);
 
-		const updates = { ...req.body };
-		if (req.body.size) {
-			let sizes = req.body.sizes;
-			if (typeof sizes === "string") {
-				try {
-					sizes = JSON.parse(sizes);
-				} catch (e) {
-					sizes = sizes
-						.split(",")
-						.map((s: string) => s.trim())
-						.filter((s: string) => s !== "");
-				}
-			}
-			// Ensure they are arrays
-			if (!Array.isArray(sizes)) sizes = [sizes];
-			updates.sizes = sizes;
-		}
-
 		if (
 			req.body.existingImages ||
 			(req.files && (req.files as any).length > 0)
 		) {
-			updates.images = images;
+			updates.images = [...req.body.existingImages, ...images];
 		}
 		delete updates.existingImages;
 
+		let sizes = req.body.sizes || [];
+		if (typeof sizes === "string") {
+			try {
+				sizes = JSON.parse(sizes);
+			} catch (e) {
+				sizes = sizes
+					.split(",")
+					.map((s: string) => s.trim())
+					.filter((s: string) => s !== "");
+			}
+		}
+
+		// Ensure they are arrays
+		if (!Array.isArray(sizes)) sizes = [sizes];
+		updates.sizes = sizes;
+
 		const product = await Product.findByIdAndUpdate(req.params.id, updates, {
-			new: true,
+			returnDocument: "after",
 			runValidators: true,
 		});
 		if (!product) {
-			return res.status(404).json({
-				success: false,
-				message: "Could not update, Product not found",
-			});
+			return res.status(404).json("Could not update, Product not found");
 		}
-		res.json({
-			success: true,
-			data: product,
-		});
+		res.json(product);
 	} catch (error: any) {
-		res.status(500).json({ success: false, message: error.message });
+		console.log(error);
+		res.status(500).json(error.message);
 	}
 };
 
 // Delete Product
 // DELETE /api/products/:id
 export const deleteProduct = async (req: Request, res: Response) => {
+	const productId = req.params.id;
 	try {
-		const product = await Product.findById(req.params.id);
+		const product = await Product.findById(productId);
 		if (!product) {
-			return res.status(404).json({
-				success: false,
-				message: "Could not delete, product not found",
-			});
+			return res.status(404).json("Could not delete, product not found");
 		}
 
 		// Delete Images from Cloudinary
@@ -223,8 +195,8 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
 		await Product.findByIdAndDelete(req.params.id);
 
-		res.json({ success: true, message: "Product deleted" });
+		res.json("Product deleted");
 	} catch (error: any) {
-		res.status(500).json({ success: false, message: error.message });
+		res.status(500).json(error.message);
 	}
 };

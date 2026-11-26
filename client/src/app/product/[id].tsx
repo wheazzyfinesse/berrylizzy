@@ -35,7 +35,7 @@ const ProductDetails = () => {
 	const isLiked = useAppSelector(isInWishlist(id));
 	const cartCount = useAppSelector(selectCartCount);
 
-	const { data: product, isLoading, refetch } = useGetProductQuery(id);
+	const { data: product, isLoading } = useGetProductQuery(id);
 
 	const [selectedSize, setSelectedSize] = useState<string | null>(null);
 	const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -177,26 +177,28 @@ const ProductDetails = () => {
 								Select size
 							</Text>
 
-							<View className="flex-row gap-3 flex-wrap">
-								{product.sizes.map((size) => (
-									<TouchableOpacity
-										key={size}
-										onPress={() => setSelectedSize(size)}
-										className={`w-12 h-12 rounded-full justify-center items-center border ${
-											selectedSize === size
-												? "bg-primary border-primary"
-												: "bg-white border-gray-200"
-										}`}
-									>
-										<Text
-											className={`text-sm font-medium ${
-												selectedSize === size ? "text-white" : "text-primary"
+							<View className="flex-row gap-3 ">
+								{product.sizes.map((size) => {
+									return (
+										<TouchableOpacity
+											key={size}
+											onPress={() => setSelectedSize(size)}
+											className={`w-12 h-12 rounded-full justify-center items-center border ${
+												selectedSize === size
+													? "bg-primary border-primary"
+													: "bg-white border-gray-200"
 											}`}
 										>
-											{size}
-										</Text>
-									</TouchableOpacity>
-								))}
+											<Text
+												className={`text-sm font-medium ${
+													selectedSize === size ? "text-white" : "text-primary"
+												}`}
+											>
+												{size}
+											</Text>
+										</TouchableOpacity>
+									);
+								})}
 							</View>
 						</View>
 					)}

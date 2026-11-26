@@ -9,7 +9,6 @@ import {
 	Switch,
 	Image,
 	ActivityIndicator,
-	Platform,
 	Modal,
 	FlatList,
 	TouchableWithoutFeedback,
@@ -17,16 +16,29 @@ import {
 import Toast from "react-native-toast-message";
 import { COLORS, CATEGORIES } from "@/constants";
 import * as ImagePicker from "expo-image-picker";
-import { dummyProducts } from "@/constants/dummyData";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
+import {
+	useGetProductQuery,
+	useUpdateProductMutation,
+} from "@/redux/features/apis/productApi";
+import { File } from "expo-file-system";
+import { SIZE_OPTIONS, SizeOption } from "@/constants/types";
 
 export default function EditProduct() {
-	const { id } = useLocalSearchParams();
-	const router = useRouter();
+	const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+	const productId = Array.isArray(id) ? id[0] : id;
 
-	const [loading, setLoading] = useState(true);
-	const [submitting, setSubmitting] = useState(false);
+	const { data: product, isLoading: productLoading } = useGetProductQuery(
+		productId ?? "",
+		{
+			skip: !productId,
+		},
+	);
+	const [updateProduct, { isLoading: updateLoading }] =
+		useUpdateProductMutation();
+
+	const router = useRouter();
 	const [modalVisible, setModalVisible] = useState(false);
 
 	// Form State
@@ -35,17 +47,26 @@ export default function EditProduct() {
 	const [price, setPrice] = useState("");
 	const [stock, setStock] = useState("");
 	const [category, setCategory] = useState("");
-	const [sizes, setSizes] = useState("");
 	const [isFeatured, setIsFeatured] = useState(false);
+	const [sizes, setSizes] = useState<SizeOption[]>([]);
 
 	// Image State
 	const [existingImages, setExistingImages] = useState<string[]>([]);
 	const [newImages, setNewImages] = useState<string[]>([]);
 
+	const toggleSize = (size: SizeOption) => {
+		setSizes((current) =>
+			current.includes(size)
+				? current.filter((item) => item !== size)
+				: [...current, size],
+		);
+	};
+
 	useEffect(() => {
+		if (!product) return;
 		const fetchProduct = async () => {
 			try {
-				const product: any = dummyProducts.find((p) => p._id === id);
+				// const product: any = dummyProducts.find((p) => p._id === id);
 				setName(product.name);
 				setDescription(product.description || "");
 				setPrice(product.price.toString());
@@ -57,12 +78,19 @@ export default function EditProduct() {
 				);
 				setIsFeatured(product.isFeatured);
 
-				if (product.sizes)
+				if (product.sizes) {
+					const validSizes: SizeOption[] = ["S", "M", "L", "XL", "XXL"];
+					const productSizes = Array.isArray(product.sizes)
+						? product.sizes
+						: product.sizes.split(",");
 					setSizes(
-						Array.isArray(product.sizes)
-							? product.sizes.join(", ")
-							: product.sizes,
+						productSizes
+							.map((size) => String(size).trim())
+							.filter((size): size is SizeOption =>
+								validSizes.includes(size as SizeOption),
+							),
 					);
+				}
 
 				if (product.images && Array.isArray(product.images)) {
 					setExistingImages(product.images);
@@ -77,17 +105,15 @@ export default function EditProduct() {
 					text2: error.response?.data?.message || "Something went wrong",
 				});
 				router.back();
-			} finally {
-				setLoading(false);
 			}
 		};
 
 		if (id) fetchProduct();
-	}, [id]);
+	}, [id, product]);
 
 	const pickImages = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
-			mediaTypes: ImagePicker.MediaTypeOptions.Images,
+			mediaTypes: ["images"],
 			allowsMultipleSelection: true,
 			selectionLimit: 5 - (existingImages.length + newImages.length),
 			quality: 0.8,
@@ -122,7 +148,6 @@ export default function EditProduct() {
 		}
 
 		try {
-			setSubmitting(true);
 			const formData = new FormData();
 
 			formData.append("name", name);
@@ -131,7 +156,7 @@ export default function EditProduct() {
 			formData.append("stock", stock);
 			formData.append("category", category);
 			formData.append("isFeatured", String(isFeatured));
-			formData.append("sizes", sizes);
+			formData.append("sizes", JSON.stringify(sizes));
 
 			// Append existing images
 			existingImages.forEach((img) => {
@@ -140,22 +165,24 @@ export default function EditProduct() {
 
 			// Append new images
 			for (const [i, uri] of newImages.entries()) {
-				const filename = `new-image-${i}.jpg`;
-				if (Platform.OS === "web") {
-					const blob = await (await fetch(uri)).blob();
-					formData.append(
-						"images",
-						new File([blob], filename, { type: "image/jpeg" }),
-					);
-				} else {
-					formData.append("images", {
-						uri,
-						name: filename,
-						type: "image/jpeg",
-					} as any);
-				}
+				const file = new File(uri);
+				formData.append("images", file, `image-${i}.jpg`);
 			}
-			router.back();
+			if (!productId) {
+				return;
+			}
+			// .unwrap() throws on an RTK Query error so your catch block can handle it
+			const result = await updateProduct({ id: productId, formData }).unwrap();
+
+			if (!result) {
+				throw new Error();
+			}
+			Toast.show({
+				type: "success",
+				text1: "success",
+				text2: "Product updated successfully!",
+			});
+			router.replace("/admin/products");
 		} catch (error: any) {
 			console.error("Failed to update product:", error);
 			Toast.show({
@@ -163,12 +190,10 @@ export default function EditProduct() {
 				text1: "Failed to Update Product",
 				text2: error.response?.data?.message || "Something went wrong",
 			});
-		} finally {
-			setSubmitting(false);
 		}
 	};
 
-	if (loading) {
+	if (productLoading) {
 		return <Loading />;
 	}
 
@@ -204,15 +229,25 @@ export default function EditProduct() {
 					onChangeText={setStock}
 				/>
 
+				{/* SIZES */}
 				<Text className="text-secondary text-xs font-bold mb-1 uppercase">
-					Sizes (comma separated)
+					Sizes (Select size)
 				</Text>
-				<TextInput
-					className="bg-surface p-3 rounded-lg mb-4 text-primary"
-					placeholder="e.g. S, M, L"
-					value={sizes}
-					onChangeText={setSizes}
-				/>
+				<View className="flex-row gap-2 ">
+					{SIZE_OPTIONS.map((size) => (
+						<TouchableOpacity
+							key={size}
+							onPress={() => toggleSize(size)}
+							style={{
+								padding: 10,
+								borderRadius: 5,
+								backgroundColor: sizes.includes(size) ? "#ccc" : "#fff",
+							}}
+						>
+							<Text>{size}</Text>
+						</TouchableOpacity>
+					))}
+				</View>
 
 				<Text className="text-secondary text-xs font-bold mb-1 uppercase">
 					Category
@@ -328,11 +363,11 @@ export default function EditProduct() {
 				</View>
 
 				<TouchableOpacity
-					className={`bg-primary p-4 rounded-xl items-center ${submitting ? "opacity-70" : ""}`}
+					className={`bg-primary p-4 rounded-xl items-center ${updateLoading ? "opacity-70" : ""}`}
 					onPress={handleSubmit}
-					disabled={submitting}
+					disabled={updateLoading}
 				>
-					{submitting ? (
+					{updateLoading ? (
 						<ActivityIndicator color="white" />
 					) : (
 						<Text className="text-white font-medium text-lg">
