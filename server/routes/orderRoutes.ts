@@ -23,7 +23,7 @@ import { paystackCallback } from "../utils/paystack.js";
 const OrderRouter = express.Router();
 
 // Static paths first, before "/:id"
-OrderRouter.get("/paystack/callback", paystackCallback);
+OrderRouter.get("/payments/paystack/callback", paystackCallback);
 OrderRouter.get("/mine", protect, getMyOrders);
 
 // Admin: read all orders
