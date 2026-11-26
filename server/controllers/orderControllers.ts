@@ -174,7 +174,9 @@ export async function createPendingOrder(req: Request, res: Response) {
 				);
 				const shippingCost = subtotal > SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
 				const tax = Math.round(subtotal * TAX_RATE);
-
+				if (!req.user) {
+					return res.status(401).json("Unauthorized");
+				}
 				// orderItems must already contain product IDs, DB prices, and validated quantities.
 				// Before creating order
 				const orderDoc = new Order({
