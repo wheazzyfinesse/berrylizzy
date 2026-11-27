@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
 import Order from "../models/orders.js";
+import { Types } from "mongoose";
+import { releaseStock } from "../controllers/orderControllers.js";
+import { randomUUID } from "node:crypto";
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
@@ -12,14 +15,16 @@ type PaystackInitializeResponse = {
 	};
 };
 
-export async function initializePaystackCheckout({
+export async function initializePaystackPaymentCheckout({
 	amountInNaira,
 	email,
 	orderId,
+	reference,
 }: {
 	amountInNaira: number;
 	email: string;
 	orderId: string;
+	reference?: string;
 }) {
 	if (!PAYSTACK_SECRET_KEY) {
 		throw new Error("PAYSTACK_SECRET_KEY is not configured");
@@ -37,8 +42,8 @@ export async function initializePaystackCheckout({
 				amount: String(Math.round(amountInNaira * 100)), // Paystack expects kobo
 				email,
 				currency: "NGN",
-				callback_url: `${process.env.PUBLIC_API_URL}/api/orders/payments/paystack/callback`,
-				metadata: { orderId },
+				callback_url: `${process.env.PUBLIC_API_URL}/api/orders/payments/verify/paystack/callback`,
+				metadata: { orderId, reference },
 			}),
 		},
 	);
@@ -46,7 +51,9 @@ export async function initializePaystackCheckout({
 	const result = (await response.json()) as PaystackInitializeResponse;
 
 	if (!response.ok || !result.status || !result.data) {
-		throw new Error(result.message || "Could not initialize Paystack checkout");
+		throw new Error(
+			result.message || "Could not initialize Paystack Payment Checkout",
+		);
 	}
 
 	return result.data;
@@ -64,7 +71,10 @@ const paymentResultPage = (title: string, message: string) => `
   </html>
 `;
 
-export const paystackCallback = async (req: Request, res: Response) => {
+export const verifyPaystackPaymentCallback = async (
+	req: Request,
+	res: Response,
+) => {
 	const reference =
 		typeof req.query.reference === "string"
 			? req.query.reference
@@ -78,7 +88,7 @@ export const paystackCallback = async (req: Request, res: Response) => {
 
 	try {
 		const order = await Order.findOne({
-			paymentReference: reference,
+			paymentAttempts: { $elemMatch: { reference } },
 			paymentMethod: "paystack",
 		});
 
@@ -93,7 +103,12 @@ export const paystackCallback = async (req: Request, res: Response) => {
 					),
 				);
 		}
-
+		const attempt = order?.paymentAttempts.find(
+			(item) => item.reference === reference,
+		);
+		if (!attempt) {
+			return res.status(404).send("Payment attempt not found");
+		}
 		if (order.paymentStatus !== "paid") {
 			const secret = process.env.PAYSTACK_SECRET_KEY;
 			if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not configured");
@@ -110,7 +125,7 @@ export const paystackCallback = async (req: Request, res: Response) => {
 				response.ok &&
 				result?.status === true &&
 				transaction?.status === "success" &&
-				transaction.reference === order.paymentReference &&
+				transaction.reference === attempt?.reference &&
 				transaction.amount === Math.round(order.totalAmount * 100) &&
 				transaction.currency === "NGN" &&
 				transaction.metadata?.orderId === String(order._id);
@@ -128,6 +143,7 @@ export const paystackCallback = async (req: Request, res: Response) => {
 			}
 
 			order.paymentStatus = "paid";
+			attempt.status = "paid";
 			order.stockReserved = false;
 			order.reservationExpiresAt = null;
 			await order.save();
@@ -153,5 +169,106 @@ export const paystackCallback = async (req: Request, res: Response) => {
 					"Return to the app and try checking your order again.",
 				),
 			);
+	}
+};
+
+// POST /api/orders/:id/cancel
+export const cancelMyOrderWithRefund = async (req: Request, res: Response) => {
+	const orderId = req.params.id;
+
+	if (!req.user) {
+		return res.status(401).json({ message: "Unauthorized" });
+	}
+
+	if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
+		return res.status(400).json({ message: "Invalid order ID" });
+	}
+
+	try {
+		const order = await Order.findOne({
+			_id: orderId,
+			user: req.user._id,
+		});
+
+		if (!order) {
+			return res.status(404).json({ message: "Order not found" });
+		}
+
+		if (order.orderStatus === "cancelled") {
+			return res.status(200).json(order); // Already cancelled
+		}
+
+		if (["shipped", "delivered"].includes(order.orderStatus)) {
+			return res
+				.status(409)
+				.json({ message: "This order can no longer be cancelled" });
+		}
+		const paidAttempt = order.paymentAttempts.find(
+			(attempt) => attempt.status === "paid",
+		);
+		if (order.paymentStatus === "paid") {
+			if (order.paymentMethod !== "paystack" || !paidAttempt?.reference) {
+				return res.status(409).json({
+					message: "This paid order needs a refund to be handled manually",
+				});
+			}
+
+			if (order.refundStatus !== "not_requested") {
+				return res.status(202).json({
+					success: true,
+					message: "Refund is already being handled",
+					data: order,
+				});
+			}
+
+			const secret = process.env.PAYSTACK_SECRET_KEY;
+			if (!secret) throw new Error("PAYSTACK_SECRET_KEY is not configured");
+
+			const refundReference = `order-refund-${order._id}`;
+
+			const response = await fetch("https://api.paystack.co/refund", {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${secret}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					transaction: paidAttempt.reference,
+					reference: refundReference,
+					currency: "NGN",
+					customer_note: "Refund for cancelled order",
+				}),
+			});
+
+			const result: any = await response.json();
+
+			if (!response.ok || !result.status) {
+				return res.status(502).json({
+					success: false,
+					message: result.message || "Could not initiate refund",
+				});
+			}
+
+			order.orderStatus = "cancelled";
+			order.refundReference = refundReference;
+			order.refundStatus = result.data.status || "pending";
+			await order.save();
+
+			return res.status(202).json({
+				success: true,
+				message: "Order cancelled; refund is being processed",
+				data: order,
+			});
+		}
+
+		// Unpaid orders can be cancelled directly.
+		order.orderStatus = "cancelled";
+		await order.save();
+		await releaseStock(order);
+
+		return res.status(200).json({ success: true, data: order });
+	} catch (error) {
+		console.error("Customer order cancellation failed:", error);
+		return res.status(500).json({ message: "Could not cancel order" });
 	}
 };

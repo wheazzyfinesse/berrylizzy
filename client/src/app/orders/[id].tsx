@@ -6,12 +6,18 @@ import { COLORS } from "@/constants";
 import type { Product } from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
-import { useGetOrderByIdQuery } from "@/redux/features/apis/orderApi";
+import { useGetOrderQuery } from "@/redux/features/apis/orderApi";
 import Error from "@/components/Error";
+import { skipToken } from "@reduxjs/toolkit/query";
 
 export default function OrderDetails() {
 	const { id } = useLocalSearchParams();
-	const { data: order, isLoading, isError } = useGetOrderByIdQuery(id);
+	const orderId = typeof id === "string" ? id : id?.[0];
+	const {
+		data: order,
+		isLoading,
+		isError,
+	} = useGetOrderQuery(orderId ?? skipToken);
 
 	if (isLoading) {
 		return <Loading />;
@@ -95,14 +101,14 @@ export default function OrderDetails() {
 				{/* Items */}
 				<View className="bg-white p-4 rounded-xl mb-4 border border-gray-100">
 					<Text className="text-lg font-bold text-primary mb-4">Products</Text>
-					{order.items.map((item: any, index: number) => {
+					{order.orderItems.map((item: any, index: number) => {
 						const productData = item.product as Product;
 						const image = productData?.images?.[0];
 
 						return (
 							<View
 								key={index}
-								className={`flex-row ${index !== order.items.length - 1 && "border-b border-gray-100 pb-4 mb-4"}`}
+								className={`flex-row ${index !== order.orderItems.length - 1 && "border-b border-gray-100 pb-4 mb-4"}`}
 							>
 								{image && (
 									<Image
@@ -146,6 +152,28 @@ export default function OrderDetails() {
 						<Text className="text-secondary ml-2 flex-1">
 							{order.shippingAddress?.street}, {order.shippingAddress?.city},{" "}
 							{order.shippingAddress?.zipCode}, {order.shippingAddress?.country}
+						</Text>
+					</View>
+					<View className="flex-row items-center mb-2">
+						<Ionicons
+							name="person-outline"
+							size={20}
+							color={COLORS.secondary}
+						/>
+						<Text className="text-secondary ml-2 flex-1">
+							{order.shippingAddress?.firstName +
+								" " +
+								order.shippingAddress?.lastName}
+						</Text>
+					</View>
+					<View className="flex-row items-center mb-2">
+						<Ionicons
+							name="phone-portrait-outline"
+							size={20}
+							color={COLORS.secondary}
+						/>
+						<Text className="text-secondary ml-2 flex-1">
+							{order.shippingAddress?.phone}
 						</Text>
 					</View>
 				</View>

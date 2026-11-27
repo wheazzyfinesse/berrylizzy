@@ -119,13 +119,12 @@ const SignUpScreen = () => {
 				return;
 			}
 			// save user credentials
-			const token = await getToken();
 
-			if (!token) {
-				throw new Error("Clerk did not return a session token");
-			}
-
-			await authService.saveToken(token);
+			Toast.show({
+				type: "success",
+				text1: "Success",
+				text2: "Account Activation successful.",
+			});
 			router.replace("/");
 		} catch (error) {
 			Toast.show({

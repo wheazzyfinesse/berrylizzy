@@ -1,23 +1,24 @@
 import Header from "@/components/Header";
 import Loading from "@/components/Loading";
 import { COLORS, PROFILE_MENU } from "@/constants";
-
-import { useAppDispatch } from "@/redux/lib/hooks";
 import { useUser, useClerk } from "@clerk/expo";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import { Redirect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 const Profile = () => {
-	// const { data: user, isLoading, isFetching, isError } = useGetMeQuery();
 	const router = useRouter();
 	const { user, isLoaded, isSignedIn } = useUser();
 	const { signOut } = useClerk();
 
-	const dispatch = useAppDispatch();
 	const handleSignout = async () => {
 		await signOut();
-		// dispatch(logout());
+		Toast.show({
+			type: "success",
+			text1: "Success",
+			text2: "Sign Out successful",
+		});
 		router.replace("/");
 	};
 

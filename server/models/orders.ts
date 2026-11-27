@@ -1,5 +1,19 @@
 import mongoose, { Schema } from "mongoose";
 
+const PaymentAttemptSchema = new Schema(
+	{
+		reference: { type: String, required: true },
+		status: {
+			type: String,
+			enum: ["pending", "failed", "paid", "initializing"],
+			default: "pending",
+			required: true,
+		},
+		createdAt: { type: Date, default: Date.now },
+	},
+	{ timestamps: false },
+);
+
 const OrderItemSchema = new Schema({
 	product: {
 		type: Schema.Types.ObjectId,
@@ -91,11 +105,30 @@ const OrderSchema = new Schema(
 			enum: ["cash", "paystack"],
 			default: "cash",
 		},
+		paymentAttempts: { type: [PaymentAttemptSchema], default: [] },
 		paymentReference: {
 			type: String,
 			unique: true,
 			sparse: true,
 			default: undefined,
+		},
+		refundReference: {
+			type: String,
+			unique: true,
+			sparse: true,
+			default: undefined,
+		},
+		refundStatus: {
+			type: String,
+			enum: [
+				"not_requested",
+				"pending",
+				"processing",
+				"needs-attention",
+				"processed",
+				"failed",
+			],
+			default: "not_requested",
 		},
 		orderStatus: {
 			type: String,

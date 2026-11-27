@@ -57,22 +57,15 @@ const SignInScreen = () => {
 				await signIn.finalize({
 					navigate: ({ session }) => {
 						if (session?.currentTask) return;
+						Toast.show({
+							type: "success",
+							text1: "Success",
+							text2: "Sign In successful",
+						});
 						router.replace("/");
 					},
 				});
-				// save user credentials
-				const token = await getToken();
-
-				if (!token) {
-					throw new Error("Clerk did not return a session token");
-				}
-
-				await authService.saveToken(token);
 			}
-			Toast.show({
-				type: "success",
-				text1: "Sign In successful",
-			});
 		} catch (err) {
 			Toast.show({
 				type: "error",

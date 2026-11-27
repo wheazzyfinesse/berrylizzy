@@ -5,7 +5,6 @@ import {
 	FetchArgs,
 	FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
-import * as SecureStore from "expo-secure-store";
 import { delay, mockDb } from "@/redux/lib/mockdb";
 import { dummyOrders } from "@/constants/dummyData";
 import { getClerkInstance } from "@clerk/expo";
@@ -22,9 +21,6 @@ export const API_URL = Platform.select({
 const realBaseQuery = fetchBaseQuery({
 	baseUrl: API_URL,
 	prepareHeaders: async (headers) => {
-		// const token = await AsyncStorage.getItem("token");
-		// const token = await SecureStore.getItemAsync("access_token");
-
 		const token = await getClerkInstance().session?.getToken();
 		if (token) headers.set("Authorization", `Bearer ${token}`);
 		return headers;
@@ -207,7 +203,7 @@ const baseQueryWithMock: BaseQueryFn<
 
 export const baseApi = createApi({
 	reducerPath: "api",
-	baseQuery: realBaseQuery,
+	baseQuery: baseQueryWithMock,
 	tagTypes: ["Product", "Order", "User", "Address", "Wishlist", "Cart"],
 	endpoints: () => ({}),
 });

@@ -12,16 +12,23 @@ export interface OrderShippingAddress extends Address {
 	lastName: string;
 }
 
+export interface paymentAttempt {
+	reference: string;
+	status: string;
+	createdAt: string;
+}
 export interface OrderItem {
-	productId: Product | ID;
+	product: ID;
+	name: string;
 	quantity: number;
+	price: number;
 	size?: string;
 }
 
 export interface Order extends BaseEntity {
 	user: ID;
 	orderNumber: string;
-	items: OrderItem[];
+	orderItems: OrderItem[];
 	shippingAddress: OrderShippingAddress;
 	paymentMethod: PaymentMethod;
 	paymentStatus: PaymentStatus;
@@ -31,7 +38,11 @@ export interface Order extends BaseEntity {
 	tax: number;
 	totalAmount: number;
 	notes?: string;
-	paymentReference?: string;
+	stockReserved?: string;
+	reservationExpiresAt?: string;
+	paymentAttempts?: paymentAttempt[];
+	refundReference?: string;
+	refundStatus?: string;
 	deliveredAt?: string;
 }
 export type CreatePendingOrderResponse = {
@@ -47,7 +58,9 @@ export interface CreateOrderRequest {
 	notes?: string;
 }
 
-export interface UpdateOrderStatusInput {
-	orderId: ID;
-	orderStatus: OrderStatus;
+export interface UpdateOrderRequest {
+	id: ID;
+	data: {
+		orderStatus?: OrderStatus;
+	};
 }

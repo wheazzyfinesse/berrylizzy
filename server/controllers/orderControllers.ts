@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import mongoose, { Types } from "mongoose";
 import Order from "../models/orders.js";
 import Product from "../models/products.js";
-import { initializePaystackCheckout } from "../utils/paystack.js";
+import { initializePaystackPaymentCheckout } from "../utils/paystack.js";
 import type { IOrderItem } from "../types/index.js";
 
 type OrderItemInput = {
@@ -15,84 +15,6 @@ const RESERVATION_MINUTES = 30;
 const SHIPPING_THRESHOLD = 10_000;
 const SHIPPING_COST = 1_000;
 const TAX_RATE = 0.2; // Replace with your actual tax rate.
-
-async function releaseStock(order: any) {
-	// Flip the flag first, so repeated cancellation/expiry calls won't restock twice.
-	const claimed = await Order.findOneAndUpdate(
-		{ _id: order._id, stockReserved: true },
-		{ $set: { stockReserved: false } },
-		{ new: true },
-	);
-
-	if (!claimed) return;
-
-	for (const item of order.orderItems) {
-		await Product.updateOne(
-			{ _id: item.product },
-			{ $inc: { stock: item.quantity } },
-		);
-	}
-}
-
-// GET /api/orders — admin only
-export async function getOrders(_req: Request, res: Response) {
-	try {
-		const orders = await Order.find()
-			.populate("user", "name email")
-			.sort({ createdAt: -1 });
-
-		return res.status(200).json(orders);
-	} catch (error) {
-		console.error(error);
-		return res.status(500).json("Could not get orders");
-	}
-}
-
-// GET /api/orders/mine
-export async function getMyOrders(req: Request, res: Response) {
-	try {
-		if (!req.user) return res.status(401).json("Unauthorized");
-
-		const orders = await Order.find({ user: req.user._id }).sort({
-			createdAt: -1,
-		});
-
-		return res.status(200).json(orders);
-	} catch (error) {
-		console.error(error);
-		return res.status(500).json("Could not get your orders");
-	}
-}
-
-// GET /api/orders/:id — owner or admin
-export async function getOrder(req: Request, res: Response) {
-	const orderId = req.params.id;
-	try {
-		if (!req.user) return res.status(401).json("Unauthorized");
-
-		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
-			return res.status(400).json("Invalid order ID");
-		}
-
-		const order = await Order.findById(req.params.id).populate(
-			"user",
-			"name email",
-		);
-
-		if (!order) return res.status(404).json("Order not found");
-
-		const ownerId = String((order.user as any)?._id ?? order.user);
-
-		if (ownerId !== String(req.user._id) && req.user.role !== "admin") {
-			return res.status(403).json("You cannot access this order");
-		}
-
-		return res.status(200).json(order);
-	} catch (error) {
-		console.error(error);
-		return res.status(500).json("Could not get order");
-	}
-}
 
 // POST /api/orders
 export async function createPendingOrder(req: Request, res: Response) {
@@ -212,12 +134,17 @@ export async function createPendingOrder(req: Request, res: Response) {
 		// If initialization fails, release the reservation in a separate transaction.
 		if (paymentMethod === "paystack") {
 			try {
-				const paystackCheckout = await initializePaystackCheckout({
+				const paystackCheckout = await initializePaystackPaymentCheckout({
 					amountInNaira: order.totalAmount,
 					email: req.user.email,
 					orderId: String(order._id),
 				});
-				order.paymentReference = paystackCheckout.reference;
+
+				order.paymentAttempts.push({
+					reference: paystackCheckout.reference,
+					status: "pending",
+					createdAt: new Date(),
+				});
 				await order.save();
 
 				return res.status(201).json({
@@ -273,10 +200,73 @@ export async function createPendingOrder(req: Request, res: Response) {
 	}
 }
 
+// GET /api/orders — admin only
+export async function getOrders(_req: Request, res: Response) {
+	try {
+		const orders = await Order.find()
+			.populate("user", "name email")
+			.populate("orderItems.product", "name images")
+			.sort({ createdAt: -1 });
+
+		return res.status(200).json(orders);
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json("Could not get orders");
+	}
+}
+
+// GET /api/orders/mine
+export async function getMyOrders(req: Request, res: Response) {
+	try {
+		if (!req.user) return res.status(401).json("Unauthorized");
+
+		const orders = await Order.find({ user: req.user._id })
+			.sort({
+				createdAt: -1,
+			})
+			.populate("orderItems.product", "name images");
+
+		return res.status(200).json(orders);
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json("Could not get your orders");
+	}
+}
+
+// GET /api/orders/:id — owner or admin
+export async function getOrder(req: Request, res: Response) {
+	const orderId = req.params.id;
+	try {
+		if (!req.user) return res.status(401).json("Unauthorized");
+
+		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
+			return res.status(400).json("Invalid order ID");
+		}
+
+		const order = await Order.findById(req.params.id).populate(
+			"user",
+			"name email",
+		);
+
+		if (!order) return res.status(404).json("Order not found");
+
+		const ownerId = String((order.user as any)?._id ?? order.user);
+
+		if (ownerId !== String(req.user._id) && req.user.role !== "admin") {
+			return res.status(403).json("You cannot access this order");
+		}
+
+		return res.status(200).json(order);
+	} catch (error) {
+		console.error(error);
+		return res.status(500).json("Could not get order");
+	}
+}
+
 // PUT /api/orders/:id — admin may update fulfillment fields, never payment fields
 export async function updateOrder(req: Request, res: Response) {
 	const orderId = req.params.id;
-
+	console.log(orderId);
 	try {
 		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
 			return res.status(400).json("Invalid order ID");
@@ -289,8 +279,7 @@ export async function updateOrder(req: Request, res: Response) {
 			"delivered",
 			"cancelled",
 		];
-
-		const { orderStatus, notes } = req.body;
+		const orderStatus = req.body.orderStatus;
 
 		if (orderStatus !== undefined && !allowedStatuses.includes(orderStatus)) {
 			return res.status(400).json("Invalid order status");
@@ -302,11 +291,18 @@ export async function updateOrder(req: Request, res: Response) {
 		if (orderStatus === "cancelled" && order.paymentStatus === "paid") {
 			return res
 				.status(409)
-				.json("A paid order cannot be cancelled through this endpoint");
+				.json("A paid order cannot be cancelled except by the customer");
+		}
+
+		if (
+			order.paymentStatus !== "paid" &&
+			orderStatus !== undefined &&
+			orderStatus !== "cancelled"
+		) {
+			return res.status(409).json("An unpaid order can only be cancelled");
 		}
 
 		if (orderStatus !== undefined) order.orderStatus = orderStatus;
-		if (notes !== undefined) order.notes = notes;
 
 		if (orderStatus === "delivered") {
 			order.deliveredAt = new Date();
@@ -353,6 +349,24 @@ export async function deleteOrder(req: Request, res: Response) {
 	}
 }
 
+// Release reserved stock for a cancelled or expired order.
+export async function releaseStock(order: any) {
+	// Flip the flag first, so repeated cancellation/expiry calls won't restock twice.
+	const claimed = await Order.findOneAndUpdate(
+		{ _id: order._id, stockReserved: true },
+		{ $set: { stockReserved: false } },
+		{ new: true },
+	);
+
+	if (!claimed) return;
+
+	for (const item of order.orderItems) {
+		await Product.updateOne(
+			{ _id: item.product },
+			{ $inc: { stock: item.quantity } },
+		);
+	}
+}
 // Call periodically from a scheduler to release abandoned Paystack reservations.
 export async function releaseExpiredOrderReservations() {
 	const expiredOrders = await Order.find({
@@ -383,3 +397,51 @@ export async function releaseExpiredOrderReservations() {
 		}
 	}
 }
+
+// POST /api/orders/:id/cancel
+export const cancelMyOrder = async (req: Request, res: Response) => {
+	const orderId = req.params.id;
+	console.log(orderId);
+
+	if (!req.user) {
+		return res.status(401).json("Unauthorized");
+	}
+
+	if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
+		return res.status(400).json("Invalid order ID");
+	}
+
+	try {
+		const order = await Order.findOne({
+			_id: orderId,
+			user: req.user._id,
+		});
+
+		if (!order) {
+			return res.status(404).json("Order not found");
+		}
+
+		if (order.orderStatus === "cancelled") {
+			return res.status(200).json("Order Already cancelled"); // Already cancelled
+		}
+
+		if (["shipped", "delivered"].includes(order.orderStatus)) {
+			return res.status(409).json("This order can no longer be cancelled");
+		}
+
+		if (order.paymentStatus === "paid") {
+			return res.status(409).json("Contact support to cancel a paid order");
+		}
+
+		order.orderStatus = "cancelled";
+		await order.save();
+
+		// Release reserved stock only if this order still holds a reservation.
+		await releaseStock(order);
+
+		return res.status(200).json(order);
+	} catch (error) {
+		console.error("Customer order cancellation failed:", error);
+		return res.status(500).json({ message: "Could not cancel order" });
+	}
+};

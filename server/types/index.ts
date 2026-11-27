@@ -14,6 +14,14 @@ export interface IAddress {
 	updatedAt: Date;
 }
 
+type PaymentAttemptStatus = "pending" | "failed" | "paid" | "initializing";
+
+export interface IPaymentAttempt {
+	reference: string;
+	status: PaymentAttemptStatus;
+	createdAt: Date;
+}
+
 export interface IOrderItem {
 	product: Types.ObjectId;
 	name: string;
@@ -21,6 +29,12 @@ export interface IOrderItem {
 	price: number;
 	size?: string;
 }
+export type IOrderStatus =
+	| "placed"
+	| "processing"
+	| "shipped"
+	| "delivered"
+	| "cancelled";
 
 export interface IOrder extends Document {
 	user: Types.ObjectId;
@@ -29,6 +43,7 @@ export interface IOrder extends Document {
 	paymentMethod: "cash" | "stripe";
 	paymentStatus: "pending" | "paid" | "unverified" | "failed" | "refunded";
 	paymentReference?: string;
+	paymentAttempts: IPaymentAttempt[];
 	orderStatus: "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 	subtotal: number;
 	shippingCost: number;
