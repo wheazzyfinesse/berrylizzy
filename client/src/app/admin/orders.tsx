@@ -203,9 +203,9 @@ export default function AdminOrders() {
 
 										{order.orderItems.map((item: any, index) => {
 											const productName =
-												typeof item.product === "object"
-													? item.product?.name
-													: item.name;
+												typeof item.productId === "object"
+													? item.productId?.name
+													: "Unknown Product";
 
 											return (
 												<View

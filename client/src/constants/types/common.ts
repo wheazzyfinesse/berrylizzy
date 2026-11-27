@@ -8,6 +8,8 @@ export type SizeOption = (typeof SIZE_OPTIONS)[number];
 
 export type AddressType = "Home" | "Office" | "Work" | "Other";
 
+export const addressTypes: AddressType[] = ["Home", "Work", "Other"];
+
 export type UserRole = "user" | "admin";
 
 export type PaymentMethod = "cash" | "paystack";

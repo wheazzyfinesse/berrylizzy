@@ -82,8 +82,7 @@ export async function createPendingOrder(req: Request, res: Response) {
 					reserved.push({ productId: item.productId, quantity: item.quantity });
 
 					orderItems.push({
-						product: product._id,
-						name: product.name,
+						productId: product._id,
 						size: item.size,
 						price: product.price,
 						quantity: item.quantity,
@@ -139,7 +138,6 @@ export async function createPendingOrder(req: Request, res: Response) {
 					email: req.user.email,
 					orderId: String(order._id),
 				});
-
 				order.paymentAttempts.push({
 					reference: paystackCheckout.reference,
 					status: "pending",
@@ -205,7 +203,7 @@ export async function getOrders(_req: Request, res: Response) {
 	try {
 		const orders = await Order.find()
 			.populate("user", "name email")
-			.populate("orderItems.product", "name images")
+			.populate("orderItems.productId", "name images")
 			.sort({ createdAt: -1 });
 
 		return res.status(200).json(orders);
@@ -224,7 +222,7 @@ export async function getMyOrders(req: Request, res: Response) {
 			.sort({
 				createdAt: -1,
 			})
-			.populate("orderItems.product", "name images");
+			.populate("orderItems.productId", "name images");
 
 		return res.status(200).json(orders);
 	} catch (error) {
@@ -362,7 +360,7 @@ export async function releaseStock(order: any) {
 
 	for (const item of order.orderItems) {
 		await Product.updateOne(
-			{ _id: item.product },
+			{ _id: item.productId },
 			{ $inc: { stock: item.quantity } },
 		);
 	}
@@ -391,7 +389,7 @@ export async function releaseExpiredOrderReservations() {
 
 		for (const item of order.orderItems) {
 			await Product.updateOne(
-				{ _id: item.product },
+				{ _id: item.productId },
 				{ $inc: { stock: item.quantity } },
 			);
 		}
@@ -401,7 +399,6 @@ export async function releaseExpiredOrderReservations() {
 // POST /api/orders/:id/cancel
 export const cancelMyOrder = async (req: Request, res: Response) => {
 	const orderId = req.params.id;
-	console.log(orderId);
 
 	if (!req.user) {
 		return res.status(401).json("Unauthorized");

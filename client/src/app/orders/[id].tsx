@@ -102,7 +102,7 @@ export default function OrderDetails() {
 				<View className="bg-white p-4 rounded-xl mb-4 border border-gray-100">
 					<Text className="text-lg font-bold text-primary mb-4">Products</Text>
 					{order.orderItems.map((item: any, index: number) => {
-						const productData = item.product as Product;
+						const productData = item.productId as Product;
 						const image = productData?.images?.[0];
 
 						return (
@@ -119,7 +119,7 @@ export default function OrderDetails() {
 								)}
 								<View className="flex-1 ml-3 justify-center">
 									<Text className="text-primary font-medium" numberOfLines={1}>
-										{item.name}
+										{item.productId.name}
 									</Text>
 									<Text className="text-secondary text-xs">
 										Size: {item.size}

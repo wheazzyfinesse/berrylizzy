@@ -18,8 +18,7 @@ export interface paymentAttempt {
 	createdAt: string;
 }
 export interface OrderItem {
-	product: ID;
-	name: string;
+	productId: ID;
 	quantity: number;
 	price: number;
 	size?: string;

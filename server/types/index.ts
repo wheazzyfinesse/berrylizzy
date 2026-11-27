@@ -23,8 +23,7 @@ export interface IPaymentAttempt {
 }
 
 export interface IOrderItem {
-	product: Types.ObjectId;
-	name: string;
+	productId: Types.ObjectId;
 	quantity: number;
 	price: number;
 	size?: string;

@@ -40,9 +40,9 @@ export const retryOrderPayment = async (req: Request, res: Response) => {
 			!order.reservationExpiresAt ||
 			order.reservationExpiresAt <= new Date()
 		) {
-			return res.status(409).json({
-				message: "The stock reservation expired. Please place a new order.",
-			});
+			return res
+				.status(409)
+				.json("The stock reservation expired. Please place a new order.");
 		}
 
 		// Don’t create another checkout while an earlier attempt may still succeed.
@@ -62,17 +62,22 @@ export const retryOrderPayment = async (req: Request, res: Response) => {
 				`https://api.paystack.co/transaction/verify/${encodeURIComponent(
 					activeAttempt.reference,
 				)}`,
-				{ headers: { Authorization: `Bearer ${secret}` } },
+				{
+					headers: { Authorization: `Bearer ${secret}` },
+				},
 			);
 
 			const verifyResult: any = await verifyResponse.json();
 			const transaction = verifyResult?.data;
 
-			if (
-				verifyResponse.ok &&
-				verifyResult?.status === true &&
-				transaction?.status === "success"
-			) {
+			if (!verifyResponse.ok || verifyResult?.status !== true || !transaction) {
+				return res.status(502).json({
+					message:
+						"Could not verify the previous payment attempt. Try again shortly.",
+				});
+			}
+
+			if (transaction.status === "success") {
 				const valid =
 					transaction.reference === activeAttempt.reference &&
 					transaction.amount === Math.round(order.totalAmount * 100) &&
@@ -91,23 +96,26 @@ export const retryOrderPayment = async (req: Request, res: Response) => {
 				order.reservationExpiresAt = null;
 				await order.save();
 
-				return res.status(409).json("This order has already been paid.");
+				return res.status(409).json({
+					message: "This order has already been paid.",
+					data: order,
+				});
 			}
 
 			if (
-				verifyResponse.ok &&
-				verifyResult?.status === true &&
-				transaction?.status === "failed"
+				transaction.status === "failed" ||
+				transaction.status === "abandoned"
 			) {
-				activeAttempt.status = "failed";
+				activeAttempt.status = transaction.status;
 				order.paymentStatus = "failed";
 				await order.save();
+
+				// Continue below to create the new payment attempt.
 			} else {
-				return res
-					.status(409)
-					.json(
-						"A previous payment attempt is still unresolved. Check the order status before retrying.",
-					);
+				// For example: pending, ongoing, or processing.
+				return res.status(409).json({
+					message: `The previous payment is still unresolved (${transaction.status}).`,
+				});
 			}
 		}
 

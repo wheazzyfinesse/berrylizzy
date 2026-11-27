@@ -4,7 +4,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { logout, setUser } from "@/redux/features/slices/authSlice";
 import { setResolvedTheme } from "@/redux/features/slices/themeSlice";
 import { authService } from "@/redux/features/services/authServices";
-import { useAuth } from "@clerk/expo";
+import { useAuth, useClerk, useUser } from "@clerk/expo";
 import { setApiTokenGetter } from "@/redux/features/services/apiToken";
 
 type Props = {
@@ -18,6 +18,7 @@ const AppInitializer = ({ children }: Props) => {
 
 	const [initialized, setInitialized] = useState(false);
 	const { getToken, isLoaded, isSignedIn } = useAuth();
+	const { signOut } = useClerk();
 
 	useEffect(() => {
 		setApiTokenGetter(getToken);
@@ -30,15 +31,11 @@ const AppInitializer = ({ children }: Props) => {
 		const initialize = async () => {
 			try {
 				if (!isSignedIn) {
-					dispatch(logout());
+					await signOut();
 					return;
 				}
 
 				const user = await authService.restoreSession(getToken);
-
-				if (user) {
-					dispatch(setUser(user));
-				} else dispatch(logout());
 			} catch (error) {
 				console.warn("App initialization failed:", error);
 				return null;

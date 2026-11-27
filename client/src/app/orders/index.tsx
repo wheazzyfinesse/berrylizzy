@@ -148,7 +148,7 @@ export default function Orders() {
 									className="mb-3"
 								>
 									{item.orderItems.map((item: any, index) => {
-										const image = item.product?.images?.[0];
+										const image = item.productId?.images?.[0];
 										return (
 											<View
 												key={index}

@@ -232,6 +232,7 @@ const Checkout = () => {
 				pendingOrderItems: cartItems.map((item) => ({
 					productId: item.product._id,
 					size: item.size,
+					price: item.product.price,
 					quantity: item.quantity,
 				})),
 				shippingAddress,
@@ -240,11 +241,12 @@ const Checkout = () => {
 			};
 			const orderCheckout =
 				await createPendingOrder(pendingOrderPayload).unwrap();
-
 			if (orderCheckout.order.paymentMethod === "paystack") {
 				setPendingOrderId(String(orderCheckout.order._id));
 
-				await WebBrowser.openBrowserAsync(orderCheckout.authorization_url);
+				const url = await WebBrowser.openBrowserAsync(
+					orderCheckout.authorization_url,
+				);
 				return;
 			}
 

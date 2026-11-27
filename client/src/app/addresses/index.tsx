@@ -14,7 +14,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
 import { COLORS } from "@/constants";
-import type { Address, AddressType } from "@/constants/types";
+import {
+	addressTypes,
+	type Address,
+	type AddressType,
+} from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Toast from "react-native-toast-message";
 import {
@@ -26,7 +30,6 @@ import {
 } from "@/redux/features/apis/addressApi";
 
 export default function Addresses() {
-	const addressTypes: AddressType[] = ["Home", "Work", "Other"];
 	const { data: addresses, isLoading: addressLoading } = useGetAddressesQuery();
 
 	const [addAddress, { isLoading: isAdding }] = useAddAddressMutation();

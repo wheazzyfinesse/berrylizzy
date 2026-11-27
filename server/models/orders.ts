@@ -5,7 +5,7 @@ const PaymentAttemptSchema = new Schema(
 		reference: { type: String, required: true },
 		status: {
 			type: String,
-			enum: ["pending", "failed", "paid", "initializing"],
+			enum: ["abandoned", "pending", "failed", "paid", "initializing"],
 			default: "pending",
 			required: true,
 		},
@@ -15,7 +15,7 @@ const PaymentAttemptSchema = new Schema(
 );
 
 const OrderItemSchema = new Schema({
-	product: {
+	productId: {
 		type: Schema.Types.ObjectId,
 		ref: "Product",
 		required: true,
@@ -25,7 +25,6 @@ const OrderItemSchema = new Schema({
 		required: true,
 		min: 1,
 	},
-	name: { type: String, required: true },
 	size: { type: String, required: true },
 	price: {
 		type: Number,
