@@ -14,9 +14,15 @@ export interface IAddress {
 	updatedAt: Date;
 }
 
-type PaymentAttemptStatus = "pending" | "failed" | "paid" | "initializing";
+type PaymentAttemptStatus =
+	| "abandoned"
+	| "pending"
+	| "failed"
+	| "paid"
+	| "initializing";
 
 export interface IPaymentAttempt {
+	requestedReference: string;
 	reference: string;
 	status: PaymentAttemptStatus;
 	createdAt: Date;
@@ -35,13 +41,22 @@ export type IOrderStatus =
 	| "delivered"
 	| "cancelled";
 
+export type IRefundStatus =
+	| "not_requested"
+	| "pending"
+	| "processing"
+	| "needs-attention"
+	| "processed"
+	| "failed"
+	| "initiating";
+
 export interface IOrder extends Document {
 	user: Types.ObjectId;
 	orderItems: IOrderItem[];
 	shippingAddress: IAddress;
 	paymentMethod: "cash" | "stripe";
 	paymentStatus: "pending" | "paid" | "unverified" | "failed" | "refunded";
-	paymentReference?: string;
+	refundStatus: IRefundStatus;
 	paymentAttempts: IPaymentAttempt[];
 	orderStatus: "placed" | "processing" | "shipped" | "delivered" | "cancelled";
 	subtotal: number;

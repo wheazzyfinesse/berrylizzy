@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
 	FlatList,
 	Text,
@@ -10,9 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
-import { COLORS, getStatusColor } from "@/constants";
-
-import { formatDate } from "@/constants/dummyData";
+import {
+	COLORS,
+	formatRefundStatus,
+	getRefundStatuscColor,
+	getStatusColor,
+} from "@/constants";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
 import {
@@ -24,50 +27,108 @@ import Error from "@/components/Error";
 import Toast from "react-native-toast-message";
 import { canCancelOrder } from "@/redux/lib/canCancelOrder";
 import { canRetryPayment } from "@/redux/lib/canRetryPayment";
+import * as WebBrowser from "expo-web-browser";
+import { useCallback, useEffect, useState } from "react";
+import formatDate from "@/redux/lib/formatDate";
 
 export default function Orders() {
+	const [pendingRetryOrderId, setPendingRetryOrderId] = useState<string | null>(
+		null,
+	);
+	const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
+	const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(
+		null,
+	);
 	const router = useRouter();
-	const { data: orders = [], isLoading, isError } = useGetMyOrdersQuery();
+	const {
+		data: orders = [],
+		isLoading,
+		isError,
+		refetch,
+	} = useGetMyOrdersQuery();
 
 	// Update order status
-	const [cancelMyOrder, { isLoading: cancelling }] = useCancelMyOrderMutation();
-	const [retryPayment, { isLoading: retrying }] =
-		useRetryOrderPaymentMutation();
+	const [cancelMyOrder] = useCancelMyOrderMutation();
+	const [retryOrderPayment] = useRetryOrderPaymentMutation();
 
 	const handleRetryPayment = async (orderId: string) => {
+		setRetryingOrderId(orderId);
 		// Implement the logic to retry the payment here
 		try {
-			await retryPayment(orderId).unwrap();
-			Toast.show({
-				type: "success",
-				text1: "Success",
-				text2: "Payment retry successfully.",
-			});
+			const retryPayment = await retryOrderPayment(orderId).unwrap();
+			setPendingRetryOrderId(orderId);
+			await WebBrowser.openBrowserAsync(retryPayment.authorization_url);
+
+			await refetch();
 		} catch (error: any) {
 			Toast.show({
 				type: "error",
 				text1: "Payment Retry Failed",
 				text2: error?.data || "Failed to retry payment.",
 			});
+			setRetryingOrderId(null);
+			setPendingRetryOrderId(null);
+			await refetch();
+		} finally {
+			await refetch();
+
+			setRetryingOrderId(null);
+			setPendingRetryOrderId(null);
 		}
 	};
 	const handleCancelOrder = async (orderId: string) => {
+		setCancellingOrderId(orderId);
 		// Implement the logic to cancel the order here
 		try {
-			await cancelMyOrder(orderId).unwrap();
+			const response = await cancelMyOrder(orderId).unwrap();
 			Toast.show({
 				type: "success",
 				text1: "Success",
-				text2: "Order cancelled successfully.",
+				text2: response || "Order cancelled successfully.",
 			});
+			await refetch();
 		} catch (error: any) {
 			Toast.show({
 				type: "error",
 				text1: "Order Cancellation Failed",
 				text2: error?.data || "Failed to cancel order.",
 			});
+			await refetch();
+
+			setCancellingOrderId(null);
+		} finally {
+			await refetch();
+
+			setCancellingOrderId(null);
 		}
 	};
+
+	useEffect(() => {
+		if (!pendingRetryOrderId) return;
+
+		const retriedOrder = orders.find(
+			(order) => order._id === pendingRetryOrderId,
+		);
+
+		if (retriedOrder?.paymentStatus !== "paid") {
+			return;
+		}
+
+		setPendingRetryOrderId(null);
+
+		Toast.show({
+			type: "success",
+			text1: "Payment retry success",
+			text2: `Payment for order #${retriedOrder.orderNumber} was confirmed.`,
+		});
+		refetch();
+	}, [pendingRetryOrderId, orders]);
+
+	useFocusEffect(
+		useCallback(() => {
+			void refetch();
+		}, [refetch]),
+	);
 
 	if (isError) return <Error message="Unable to load your orders" />;
 	if (isLoading) return <Loading />;
@@ -98,7 +159,7 @@ export default function Orders() {
 									<Text className="text-primary font-bold">
 										Order #{item.orderNumber}
 									</Text>
-									<Text className="text-secondary text-sm">
+									<Text className="text-secondary text-xs">
 										{formatDate(item.createdAt)}
 									</Text>
 								</View>
@@ -131,8 +192,23 @@ export default function Orders() {
 										</Text>
 									</View>
 								</View>
-
-								<View className="flex-row justify-between items-center mb-2">
+								{item.paymentMethod === "paystack" &&
+									item.orderStatus === "cancelled" &&
+									item.refundStatus !== "not_requested" && (
+										<View className="flex-row items-center mb-2">
+											<Text className="text-secondary text-xs">
+												Refund Status:
+											</Text>
+											<View
+												className={`rounded-full px-2 ${getRefundStatuscColor(item.refundStatus)}`}
+											>
+												<Text className="font-medium text-xs capitalize">
+													{formatRefundStatus(item.refundStatus)}
+												</Text>
+											</View>
+										</View>
+									)}
+								<View className="flex-row items-center mb-2">
 									<Text className="text-secondary text-xs">
 										Payment Method:
 										<Text className="text-primary font-medium capitalize">
@@ -187,22 +263,26 @@ export default function Orders() {
 							{canRetryPayment(item) && (
 								<TouchableOpacity
 									className="border border-red-300 bg-red-100 justify-center items-center py-3 mt-3 rounded-full"
-									disabled={retrying}
+									disabled={item._id === retryingOrderId}
 									onPress={() => handleRetryPayment(item._id)}
 								>
 									<Text className="text-red-500 font-bold">
-										{retrying ? <ActivityIndicator /> : "Retry Payment"}
+										{item._id === retryingOrderId ? (
+											<ActivityIndicator />
+										) : (
+											"Retry Payment"
+										)}
 									</Text>
 								</TouchableOpacity>
 							)}
 							{canCancelOrder(item) && (
 								<TouchableOpacity
 									className="border border-red-300 bg-red-100 justify-center items-center py-3 mt-3 rounded-full"
-									disabled={cancelling}
+									disabled={item._id === cancellingOrderId}
 									onPress={() => handleCancelOrder(item._id)}
 								>
 									<Text className="text-red-500 font-bold">
-										{cancelling ? (
+										{item._id === cancellingOrderId ? (
 											<ActivityIndicator />
 										) : item.paymentStatus === "paid" ? (
 											"Cancel order & request refund"

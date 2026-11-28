@@ -16,6 +16,18 @@ export type PaymentMethod = "cash" | "paystack";
 
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
+export type PaymentAttemptStatus =
+	"abandoned" | "pending" | "failed" | "paid" | "initializing";
+
+export type RefundStatus =
+	| "not_requested"
+	| "pending"
+	| "initiating"
+	| "processing"
+	| "needs-attention"
+	| "processed"
+	| "failed";
+
 export type OrderStatus =
 	"placed" | "processing" | "shipped" | "delivered" | "cancelled";
 
@@ -27,6 +39,7 @@ export interface Rating {
 export interface BaseEntity {
 	_id: ID;
 	createdAt: ISODateString;
+	updatedAt: ISODateString;
 }
 
 export interface PaginationParams {

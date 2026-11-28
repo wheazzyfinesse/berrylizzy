@@ -1,13 +1,12 @@
 import express from "express";
-import {
-	createProduct,
-	deleteProduct,
-	getProduct,
-	getProducts,
-	updateProduct,
-} from "../controllers/productControllers.js";
+
 import { authorize, protect } from "../middleware/auth.js";
 import upload from "../middleware/upload.js";
+import getProducts from "../controllers/productControler/getProducts.js";
+import getProduct from "../controllers/productControler/getProduct.js";
+import createProduct from "../controllers/productControler/createProduct.js";
+import updateProduct from "../controllers/productControler/updateProduct.js";
+import deleteProduct from "../controllers/productControler/deleteProduct.js";
 
 const ProductRouter = express.Router();
 

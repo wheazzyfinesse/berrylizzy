@@ -9,6 +9,7 @@ import Loading from "@/components/Loading";
 import { useGetOrderQuery } from "@/redux/features/apis/orderApi";
 import Error from "@/components/Error";
 import { skipToken } from "@reduxjs/toolkit/query";
+import formatDate from "@/redux/lib/formatDate";
 
 export default function OrderDetails() {
 	const { id } = useLocalSearchParams();
@@ -27,15 +28,6 @@ export default function OrderDetails() {
 		return <Error message="No order found" />;
 	}
 
-	const formatDate = (dateString: string) => {
-		const options: Intl.DateTimeFormatOptions = {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-		};
-		return new Date(dateString).toLocaleDateString(undefined, options);
-	};
-
 	const ORDER_STEPS = [
 		{
 			title: "Order Placed",
@@ -44,20 +36,33 @@ export default function OrderDetails() {
 		},
 		{
 			title: "Processing",
-			date: "",
+			date:
+				order.orderStatus === "processing" &&
+				(new Date(order.updatedAt).getTime() !==
+				new Date(order.createdAt).getTime()
+					? formatDate(order.updatedAt)
+					: ""),
+
 			completed: ["processing", "shipped", "delivered"].includes(
 				order.orderStatus,
 			),
 		},
 		{
 			title: "Shipped",
-			date: "",
+			date: order.orderStatus === "shipped" && formatDate(order.updatedAt),
+
 			completed: ["shipped", "delivered"].includes(order.orderStatus),
 		},
 		{
 			title: "Delivered",
-			date: "",
+			date: order.orderStatus === "delivered" && formatDate(order.updatedAt),
+
 			completed: order.orderStatus === "delivered",
+		},
+		{
+			title: "Cancelled",
+			date: order.orderStatus === "cancelled" && formatDate(order.updatedAt),
+			completed: order.orderStatus === "cancelled",
 		},
 	];
 
@@ -197,6 +202,17 @@ export default function OrderDetails() {
 							{order.paymentStatus}
 						</Text>
 					</View>
+					{order.orderStatus === "cancelled" &&
+						order.refundStatus !== "not_requested" && (
+							<View className="flex-row justify-between mb-2">
+								<Text className="text-secondary">Refund Status</Text>
+								<Text
+									className={`font-medium capitalize ${order.paymentStatus === "paid" ? "text-green-600" : order.paymentStatus === "failed" ? "text-red-600" : "text-orange-500"}`}
+								>
+									{order.refundStatus}
+								</Text>
+							</View>
+						)}
 					<View className="h-px bg-gray-100 my-2" />
 					<View className="flex-row justify-between mb-2">
 						<Text className="text-secondary">Subtotal</Text>

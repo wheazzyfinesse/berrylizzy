@@ -1,10 +1,12 @@
-import { Address, Product } from ".";
+import { Address } from ".";
 import type {
 	BaseEntity,
 	ID,
 	OrderStatus,
+	PaymentAttemptStatus,
 	PaymentMethod,
 	PaymentStatus,
+	RefundStatus,
 } from "./common";
 
 export interface OrderShippingAddress extends Address {
@@ -13,8 +15,9 @@ export interface OrderShippingAddress extends Address {
 }
 
 export interface paymentAttempt {
+	requestedReference: string;
 	reference: string;
-	status: string;
+	status: PaymentAttemptStatus;
 	createdAt: string;
 }
 export interface OrderItem {
@@ -41,13 +44,14 @@ export interface Order extends BaseEntity {
 	reservationExpiresAt?: string;
 	paymentAttempts?: paymentAttempt[];
 	refundReference?: string;
-	refundStatus?: string;
+	refundStatus?: RefundStatus;
 	deliveredAt?: string;
 }
-export type CreatePendingOrderResponse = {
+export type CreateOrderResponse = {
 	order: Order;
 	authorization_url: string;
 	reference: string;
+	continueExistingAttempt?: boolean;
 };
 
 export interface CreateOrderRequest {

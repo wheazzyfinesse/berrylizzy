@@ -1,8 +1,8 @@
 import {
 	Order,
 	CreateOrderRequest,
-	CreatePendingOrderResponse,
 	UpdateOrderRequest,
+	CreateOrderResponse,
 } from "@/constants/types";
 import { baseApi } from "./api";
 
@@ -38,10 +38,7 @@ export const ordersApi = baseApi.injectEndpoints({
 			query: (id) => `/orders/${id}`,
 			providesTags: (result, error, id) => [{ type: "Order", id }],
 		}),
-		createPendingOrder: builder.mutation<
-			CreatePendingOrderResponse,
-			CreateOrderRequest
-		>({
+		createOrder: builder.mutation<CreateOrderResponse, CreateOrderRequest>({
 			query: (body) => ({ url: "/orders", method: "POST", body }),
 			invalidatesTags: ["Order", "Cart"],
 		}),
@@ -60,12 +57,15 @@ export const ordersApi = baseApi.injectEndpoints({
 			query: (id) => ({ url: `/orders/mine/${id}/cancel`, method: "POST" }),
 			invalidatesTags: ["Order"],
 		}),
-		retryOrderPayment: builder.mutation<string, string>({
+		retryOrderPayment: builder.mutation<CreateOrderResponse, string>({
 			query: (id) => ({
 				url: `/orders/mine/${id}/retry-payment`,
 				method: "POST",
 			}),
-			invalidatesTags: ["Order"],
+			invalidatesTags: (result, error, id) => [
+				{ type: "Order", id: id },
+				"Order",
+			],
 		}),
 		deleteOrder: builder.mutation<{ success: boolean }, string>({
 			query: (id) => ({ url: `/orders/${id}`, method: "DELETE" }),
@@ -78,7 +78,7 @@ export const {
 	useGetOrdersQuery,
 	useGetOrderQuery,
 	useGetMyOrdersQuery,
-	useCreatePendingOrderMutation,
+	useCreateOrderMutation,
 	useUpdateOrderMutation,
 	useCancelMyOrderMutation,
 	useRetryOrderPaymentMutation,

@@ -244,6 +244,24 @@ export default function AdminOrders() {
 												{order.paymentStatus}
 											</Text>
 										</View>
+										{order.refundStatus !== "not_requested" && (
+											<View className="flex-row justify-between items-center mt-2">
+												<Text className="text-secondary text-xs">
+													Refund Status:
+												</Text>
+												<Text
+													className={`text-xs font-bold px-2 py-1 rounded-full ${
+														order.refundStatus === "refunded"
+															? "bg-green-100 text-green-800"
+															: order.refundStatus === "pending"
+																? "bg-yellow-100 text-yellow-800"
+																: "bg-red-100 text-red-800"
+													} `}
+												>
+													{order.refundStatus}
+												</Text>
+											</View>
+										)}
 									</View>
 
 									{/* Order total and status */}

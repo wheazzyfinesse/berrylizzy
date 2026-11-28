@@ -45,3 +45,37 @@ export const getStatusColor = (status: string) => {
 			return "bg-gray-50 text-gray-900";
 	}
 };
+
+type RefundStatus =
+	| "not_requested"
+	| "initiating"
+	| "pending"
+	| "processing"
+	| "needs-attention"
+	| "processed"
+	| "failed";
+
+export const getRefundStatuscColor = (
+	status: RefundStatus | undefined,
+): string | undefined => {
+	switch (status) {
+		case "processed":
+			return "bg-green-100 text-green-700";
+
+		case "failed":
+			return "bg-red-100 text-red-700";
+
+		case "pending":
+		case "processing":
+		case "initiating":
+			return "bg-blue-100 text-blue-700";
+
+		case "needs-attention":
+			return "bg-orange-100 text-orange-700";
+
+		case "not_requested":
+			return "bg-gray-100 text-gray-700";
+	}
+};
+export const formatRefundStatus = (status: RefundStatus | undefined) =>
+	(status ?? "not_requested").replaceAll("_", " ").replaceAll("-", " ");

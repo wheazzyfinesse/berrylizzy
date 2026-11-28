@@ -10,8 +10,6 @@ import {
 	Image,
 	Alert,
 } from "react-native";
-import { COLORS } from "@/constants";
-import { dummyProducts } from "@/constants/dummyData";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
 import {

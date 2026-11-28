@@ -2,7 +2,9 @@ import mongoose, { Schema } from "mongoose";
 
 const PaymentAttemptSchema = new Schema(
 	{
+		requestedReference: { type: String, required: true },
 		reference: { type: String, required: true },
+		authorizationUrl: { type: String, default: "" },
 		status: {
 			type: String,
 			enum: ["abandoned", "pending", "failed", "paid", "initializing"],
@@ -105,12 +107,6 @@ const OrderSchema = new Schema(
 			default: "cash",
 		},
 		paymentAttempts: { type: [PaymentAttemptSchema], default: [] },
-		paymentReference: {
-			type: String,
-			unique: true,
-			sparse: true,
-			default: undefined,
-		},
 		refundReference: {
 			type: String,
 			unique: true,
@@ -126,8 +122,13 @@ const OrderSchema = new Schema(
 				"needs-attention",
 				"processed",
 				"failed",
+				"initiating",
 			],
 			default: "not_requested",
+		},
+		stockRestocked: {
+			type: Boolean,
+			default: false,
 		},
 		orderStatus: {
 			type: String,

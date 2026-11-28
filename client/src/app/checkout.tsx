@@ -35,7 +35,7 @@ import {
 
 import { useGetAddressesQuery } from "@/redux/features/apis/addressApi";
 
-import { useCreatePendingOrderMutation } from "@/redux/features/apis/orderApi";
+import { useCreateOrderMutation } from "@/redux/features/apis/orderApi";
 import { useAppDispatch, useAppSelector } from "@/redux/lib/hooks";
 import { COLORS } from "@/constants";
 import {
@@ -58,6 +58,9 @@ const Checkout = () => {
 	const router = useRouter();
 	const { user, isSignedIn } = useUser();
 
+	const [pendingPaymentReference, setPendingPaymentReference] = useState<
+		string | null
+	>(null);
 	const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 	const [receiverFirstName, setReceiverFirstName] = useState("");
 	const [receiverLastName, setReceiverLastName] = useState("");
@@ -76,29 +79,56 @@ const Checkout = () => {
 		isError: addressesError,
 	} = useGetAddressesQuery();
 
-	const [createPendingOrder, { isLoading: orderLoading }] =
-		useCreatePendingOrderMutation();
+	const [createOrder, { isLoading: orderLoading }] = useCreateOrderMutation();
 
-	const { data: pendingOrder } = useGetOrderQuery(pendingOrderId ?? skipToken, {
-		pollingInterval: pendingOrderId ? 3000 : 0,
-	});
+	const { data: pendingOrder, refetch } = useGetOrderQuery(
+		pendingOrderId ?? skipToken,
+		{
+			pollingInterval: pendingOrderId ? 3000 : 0,
+		},
+	);
 
 	const selectedAddress = addresses.find(
 		(address) => address._id === checkout.selectedAddressId,
 	);
-	useEffect(() => {
-		if (pendingOrder?.paymentStatus !== "paid") return;
 
-		setPendingOrderId(null);
-		dispatch(clearCart());
-		dispatch(resetCheckout());
-		Toast.show({
-			type: "success",
-			text1: "Payment confirmed",
-			text2: "Your order has been placed successfully.",
-		});
-		router.replace("/orders");
-	}, [pendingOrder?.paymentStatus, dispatch, router]);
+	useEffect(() => {
+		if (!pendingOrder || !pendingPaymentReference) return;
+
+		const attempt = pendingOrder.paymentAttempts?.find(
+			(item) =>
+				item.reference === pendingPaymentReference ||
+				item.requestedReference === pendingPaymentReference,
+		);
+
+		if (pendingOrder.paymentStatus === "paid") {
+			setPendingOrderId(null);
+			setPendingPaymentReference(null);
+
+			dispatch(clearCart());
+			dispatch(resetCheckout());
+
+			Toast.show({
+				type: "success",
+				text1: "Payment confirmed",
+				text2: "Your order has been placed successfully.",
+			});
+
+			router.replace("/orders");
+			return;
+		}
+
+		if (attempt?.status === "abandoned") {
+			setPendingOrderId(null);
+			setPendingPaymentReference(null);
+
+			Toast.show({
+				type: "info",
+				text1: "Payment cancelled",
+				text2: "Your order is still unpaid. You can retry payment when ready.",
+			});
+		}
+	}, [pendingOrder, pendingPaymentReference, dispatch, router]);
 
 	// Select the default address when addresses are loaded.
 	useEffect(() => {
@@ -239,14 +269,13 @@ const Checkout = () => {
 				paymentMethod: checkout.paymentMethod,
 				notes: checkout.notes,
 			};
-			const orderCheckout =
-				await createPendingOrder(pendingOrderPayload).unwrap();
+			const orderCheckout = await createOrder(pendingOrderPayload).unwrap();
 			if (orderCheckout.order.paymentMethod === "paystack") {
 				setPendingOrderId(String(orderCheckout.order._id));
+				setPendingPaymentReference(String(orderCheckout.order._id));
 
-				const url = await WebBrowser.openBrowserAsync(
-					orderCheckout.authorization_url,
-				);
+				await WebBrowser.openBrowserAsync(orderCheckout.authorization_url);
+				await refetch();
 				return;
 			}
 
