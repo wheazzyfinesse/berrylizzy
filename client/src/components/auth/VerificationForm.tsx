@@ -2,6 +2,7 @@ import { Text, TextInput, View, TouchableOpacity } from "react-native";
 
 import AuthButton from "./AuthButton";
 import AuthHeader from "./AuthHeader";
+import { useRouter } from "expo-router";
 
 interface VerificationFormProps {
 	code: string;
@@ -24,9 +25,14 @@ const VerificationForm = ({
 	subtitle = "Enter the code sent to your email",
 	showResend = true,
 }: VerificationFormProps) => {
+	const router = useRouter();
 	return (
 		<View>
-			<AuthHeader title={title} subtitle={subtitle} />
+			<AuthHeader
+				title={title}
+				subtitle={subtitle}
+				onBack={() => router.back()}
+			/>
 
 			<View className="mb-6">
 				<TextInput

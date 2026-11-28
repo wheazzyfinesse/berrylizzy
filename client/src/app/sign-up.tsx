@@ -15,7 +15,6 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthButton from "@/components/auth/AuthButton";
 import VerificationForm from "@/components/auth/VerificationForm";
-import { authService } from "@/redux/features/services/authServices";
 
 const SignUpScreen = () => {
 	const { signUp } = useSignUp();
@@ -189,7 +188,15 @@ const SignUpScreen = () => {
 					keyboardShouldPersistTaps="handled"
 					showsVerticalScrollIndicator={false}
 				>
-					{!pendingVerification ? (
+					{pendingVerification ? (
+						<VerificationForm
+							code={code}
+							onChangeCode={setCode}
+							onSubmit={onVerifyPress}
+							onResend={onResendCode}
+							loading={loading}
+						/>
+					) : (
 						<>
 							<AuthHeader
 								title="Create Account"
@@ -247,14 +254,6 @@ const SignUpScreen = () => {
 								</Link>
 							</View>
 						</>
-					) : (
-						<VerificationForm
-							code={code}
-							onChangeCode={setCode}
-							onSubmit={onVerifyPress}
-							onResend={onResendCode}
-							loading={loading}
-						/>
 					)}
 				</ScrollView>
 			</KeyboardAvoidingView>

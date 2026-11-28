@@ -14,6 +14,8 @@ export interface IAddress {
 	updatedAt: Date;
 }
 
+export const validTypes = ["Home", "Work", "Other"] as const;
+
 type PaymentAttemptStatus =
 	| "abandoned"
 	| "pending"

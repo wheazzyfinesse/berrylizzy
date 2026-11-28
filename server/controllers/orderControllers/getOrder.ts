@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import Order from "../../models/orders.js";
 
 // GET /api/orders/:id — owner or admin
@@ -12,10 +12,9 @@ const getOrder = async (req: Request, res: Response) => {
 			return res.status(400).json("Invalid order ID");
 		}
 
-		const order = await Order.findById(req.params.id).populate(
-			"user",
-			"name email",
-		);
+		const order = await Order.findById(req.params.id)
+			.populate("user", "name email")
+			.populate("orderItems.productId", "name images");
 
 		if (!order) return res.status(404).json("Order not found");
 

@@ -14,10 +14,9 @@ import { useAuth, useSignIn } from "@clerk/expo";
 import AuthInput from "@/components/auth/AuthInput";
 import AuthButton from "@/components/auth/AuthButton";
 import AuthHeader from "@/components/auth/AuthHeader";
-import { authService } from "@/redux/features/services/authServices";
 
 const SignInScreen = () => {
-	const { isSignedIn, getToken } = useAuth();
+	const { isSignedIn } = useAuth();
 	const { signIn } = useSignIn();
 	const router = useRouter();
 	const [emailAddress, setEmailAddress] = useState("");
@@ -53,24 +52,35 @@ const SignInScreen = () => {
 				return;
 			}
 
-			if (signIn.status === "complete") {
-				await signIn.finalize({
-					navigate: ({ session }) => {
-						if (session?.currentTask) return;
-						Toast.show({
-							type: "success",
-							text1: "Success",
-							text2: "Sign In successful",
-						});
-						router.replace("/");
-					},
+			if (signIn.status !== "complete") {
+				console.log("Sign-in needs another step:", signIn.status);
+
+				Toast.show({
+					type: "info",
+					text1: "Additional verification required",
+					text2: "Complete the required verification to finish signing in.",
 				});
+				return;
 			}
-		} catch (err) {
+
+			const { error: finalizeError } = await signIn.finalize();
+
+			if (finalizeError) {
+				throw new Error(finalizeError.message);
+			}
+
+			Toast.show({
+				type: "success",
+				text1: "Success",
+				text2: "Sign in successful",
+			});
+
+			router.replace("/");
+		} catch (error) {
 			Toast.show({
 				type: "error",
 				text1: "Sign In Failed",
-				text2: err instanceof Error ? err.message : "Unable to sign in",
+				text2: error instanceof Error ? error.message : "Unable to sign in",
 			});
 		} finally {
 			setLoading(false);

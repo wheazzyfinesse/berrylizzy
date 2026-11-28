@@ -6,7 +6,6 @@ import releaseStock from "./releaseStock.js";
 // PUT /api/orders/:id — admin may update fulfillment fields, never payment fields
 const updateOrder = async (req: Request, res: Response) => {
 	const orderId = req.params.id;
-	console.log(orderId);
 	try {
 		if (typeof orderId !== "string" || !Types.ObjectId.isValid(orderId)) {
 			return res.status(400).json("Invalid order ID");

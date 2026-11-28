@@ -14,33 +14,26 @@ import { paystackCancel } from "../utils/paystack/paystackCancel.js";
 const OrderRouter = express.Router();
 
 // Static paths first, before "/:id"
+// Verify an order payment
 OrderRouter.get("/payments/paystack/verify/callback", verifyOrderPayment);
+// Cancel an order payment intent
 OrderRouter.get("/payments/paystack/cancel", paystackCancel);
+// Get all orders by a user
 OrderRouter.get("/mine", protect, getMyOrders);
-
-// Admin: read all orders
+// Get all orders by an admin
 OrderRouter.get("/", protect, authorize("admin"), getOrders);
-
-// Signed-in user: create an order
+// Create an order
 OrderRouter.post("/", protect, createOrder);
-
-// Signed-in user: read an order
+// Get an order
 // getOrder must check that the user owns it, unless the user is an admin.
 OrderRouter.get("/:id", protect, getOrder);
-
-// Signed-in user: cancel an order
-// OrderRouter.post("/mine/:id/cancel", protect, cancelMyOrder);
-
-// Signed-in user: cancel an order with refund
+// Cancel an order and issue a refund when applicable only by the user
 OrderRouter.post("/mine/:id/cancel", protect, cancelRefundOrder);
-
-// Signed-in user: retry payment for a failed or pending order payment status
+// Retry payment for a failed or pending order payment status
 OrderRouter.post("/mine/:id/retry-payment", protect, retryOrderPayment);
-
-// Admin: update order details or fulfillment status
+// Update order details or fulfillment status
 OrderRouter.patch("/:id", protect, authorize("admin"), updateOrder);
-
-// Admin: delete an order
+// Delete an order only an Admin
 OrderRouter.delete("/:id", protect, authorize("admin"), deleteOrder);
 
 export default OrderRouter;

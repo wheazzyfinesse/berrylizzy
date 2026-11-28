@@ -6,17 +6,13 @@ export const canRetryPayment = (order: Order): boolean => {
 		order.reservationExpiresAt != null &&
 		new Date(order.reservationExpiresAt).getTime() > Date.now();
 
-	const reservation =
-		order.reservationExpiresAt != null &&
-		new Date(order.reservationExpiresAt).getTime();
-
 	const orderIsPayable =
 		order.orderStatus === "placed" &&
 		order.paymentMethod === "paystack" &&
 		order.paymentStatus !== "paid" &&
 		order.paymentStatus !== "refunded" &&
 		reservationIsValid;
-	console.log(orderIsPayable, order.orderNumber);
+
 	if (!orderIsPayable) return false;
 
 	const attempts = order.paymentAttempts ?? [];

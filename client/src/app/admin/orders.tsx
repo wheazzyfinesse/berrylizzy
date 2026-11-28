@@ -11,7 +11,12 @@ import {
 	FlatList,
 } from "react-native";
 
-import { COLORS, getStatusColor } from "@/constants";
+import {
+	COLORS,
+	formatRefundStatus,
+	getRefundStatuscColor,
+	getStatusColor,
+} from "@/constants";
 import type { Order, OrderStatus, User } from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
@@ -250,15 +255,9 @@ export default function AdminOrders() {
 													Refund Status:
 												</Text>
 												<Text
-													className={`text-xs font-bold px-2 py-1 rounded-full ${
-														order.refundStatus === "refunded"
-															? "bg-green-100 text-green-800"
-															: order.refundStatus === "pending"
-																? "bg-yellow-100 text-yellow-800"
-																: "bg-red-100 text-red-800"
-													} `}
+													className={`text-xs font-bold px-2 py-1 rounded-full ${getRefundStatuscColor(order.refundStatus)}`}
 												>
-													{order.refundStatus}
+													{formatRefundStatus(order.refundStatus)}
 												</Text>
 											</View>
 										)}

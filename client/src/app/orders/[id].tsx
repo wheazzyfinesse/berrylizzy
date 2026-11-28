@@ -2,7 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Image, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "@/components/Header";
-import { COLORS } from "@/constants";
+import { COLORS, formatRefundStatus, getRefundStatuscColor } from "@/constants";
 import type { Product } from "@/constants/types";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import Loading from "@/components/Loading";
@@ -202,15 +202,18 @@ export default function OrderDetails() {
 							{order.paymentStatus}
 						</Text>
 					</View>
-					{order.orderStatus === "cancelled" &&
+					{order.paymentMethod === "paystack" &&
+						order.orderStatus === "cancelled" &&
 						order.refundStatus !== "not_requested" && (
-							<View className="flex-row justify-between mb-2">
-								<Text className="text-secondary">Refund Status</Text>
-								<Text
-									className={`font-medium capitalize ${order.paymentStatus === "paid" ? "text-green-600" : order.paymentStatus === "failed" ? "text-red-600" : "text-orange-500"}`}
+							<View className="flex-row justify-between  mb-2">
+								<Text className="text-secondary">Refund Status:</Text>
+								<View
+									className={`rounded-full pl-2 pr-1  ${getRefundStatuscColor(order.refundStatus)}`}
 								>
-									{order.refundStatus}
-								</Text>
+									<Text className="font-medium  capitalize">
+										{formatRefundStatus(order.refundStatus)}
+									</Text>
+								</View>
 							</View>
 						)}
 					<View className="h-px bg-gray-100 my-2" />

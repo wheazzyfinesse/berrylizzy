@@ -12,10 +12,8 @@ const ProductRouter = express.Router();
 
 // Get All products
 ProductRouter.get("/", getProducts);
-
 // Get Single product
 ProductRouter.get("/:id", getProduct);
-
 // Create product (Admin only)
 ProductRouter.post(
 	"/",
@@ -24,7 +22,6 @@ ProductRouter.post(
 	authorize("admin"),
 	createProduct,
 );
-
 // Update product (Admin only)
 ProductRouter.put(
 	"/:id",
@@ -33,7 +30,6 @@ ProductRouter.put(
 	authorize("admin"),
 	updateProduct,
 );
-
 // Delete product (Admin only)
 ProductRouter.delete("/:id", protect, authorize("admin"), deleteProduct);
 
